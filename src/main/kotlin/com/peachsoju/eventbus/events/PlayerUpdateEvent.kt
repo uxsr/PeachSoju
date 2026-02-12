@@ -1,0 +1,12 @@
+package com.peachsoju.eventbus.events;
+
+import com.peachsoju.eventbus.Event
+
+abstract class PlayerUpdateEvent : Event() {
+
+    class Yaw(var yaw: Float) : PlayerUpdateEvent()
+
+    class Pitch(var pitch: Float) : PlayerUpdateEvent()
+
+    class Pre() : PlayerUpdateEvent()
+}

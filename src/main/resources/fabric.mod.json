@@ -17,7 +17,7 @@
 	"entrypoints": {
 		"main": [
 			{
-				"value": "com.blowup.PeachSoju",
+				"value": "com.peachsoju.PeachSoju",
 				"adapter": "kotlin"
 			}
 		]
