@@ -1,0 +1,35 @@
+{
+	"schemaVersion": 1,
+	"id": "peachsoju",
+	"version": "${version}",
+	"name": "PeachSoju",
+	"description": "This is an example description! Tell everyone what your mod is about!",
+	"authors": [
+		"Me!"
+	],
+	"contact": {
+		"homepage": "https://fabricmc.net/",
+		"sources": "https://github.com/FabricMC/fabric-example-mod"
+	},
+	"license": "CC0-1.0",
+	"icon": "assets/PeachSoju/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			{
+				"value": "com.blowup.PeachSoju",
+				"adapter": "kotlin"
+			}
+		]
+	},
+	"mixins": [
+		"PeachSoju.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.18.4",
+		"minecraft": "~1.21.10",
+		"java": ">=21",
+		"fabric-api": "*",
+		"fabric-language-kotlin": "*"
+	}
+}

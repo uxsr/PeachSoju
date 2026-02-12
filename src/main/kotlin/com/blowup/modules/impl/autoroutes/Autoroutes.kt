@@ -1,0 +1,364 @@
+package com.blowup.modules.impl.autoroutes
+
+import com.blowup.PeachSoju.mc
+import com.blowup.config
+import com.blowup.eventbus.SubscribeEvent
+import com.blowup.eventbus.events.PacketEvent
+import com.blowup.eventbus.events.TickEvent
+import com.blowup.eventbus.events.WorldEvent
+import com.blowup.handlers.RightClickHandler
+import com.blowup.handlers.SneakHandler
+import com.blowup.modules.impl.autoroutes.data.WPType
+import com.blowup.modules.impl.autoroutes.data.WaypointNode
+import com.blowup.utils.RouteUtils
+import com.blowup.utils.SwapResult
+import com.odtheking.odin.utils.skyblock.LocationUtils
+import com.odtheking.odin.utils.skyblock.dungeon.DungeonUtils
+import com.odtheking.odin.utils.skyblock.dungeon.DungeonUtils.getRealCoords
+import com.odtheking.odin.utils.skyblock.dungeon.tiles.Room
+import net.minecraft.core.BlockPos
+import net.minecraft.network.protocol.game.ClientboundPlayerPositionPacket
+import net.minecraft.world.InteractionHand
+import net.minecraft.world.phys.HitResult
+import net.minecraft.world.phys.Vec3
+import kotlin.math.floor
+
+object Autoroutes {
+
+    private val enabled get() = config.autoroutes()
+    private const val nodeCooldownMs = 150L
+    private const val etherwarpClickCooldownMs = 500L
+    private const val minCrouchTicks = 2
+
+    private var leftClickWasDown = false
+    private var lastEtherwarpClickTime = 0L
+    private var crouchTicks = 0
+
+    @SubscribeEvent
+    fun onTick(event: TickEvent.Start) {
+        if (!enabled) return
+        val player = mc.player ?: return
+        val room = DungeonUtils.currentRoom
+        val key = getCurrentKey(room) ?: return
+
+        RouteState.nodeList = NodeManager.getWaypointsForRoom(key) ?: emptyList()
+
+        if (key != RouteState.currentRoomKey) {
+            RouteState.currentRoomKey = key
+            RouteState.currentRoom = room
+            RouteState.consumed = 0
+            RouteState.routeActive = false
+            RouteState.awaitingSecrets = 0
+            RouteState.pendingNodeIndex = -1
+            RouteState.awaitingSecretConfirmation = false
+            RouteState.secretConfirmationTicks = 0
+            RouteState.delayTicksRemaining = 0
+            RouteState.nodeCooldowns.clear()
+            RouteState.previousPosition = player.position()
+            SneakHandler.releaseSneak()
+            RouteUtils.debug("§aRoom changed to: $key (${RouteState.nodeList.size} nodes)")
+        }
+
+        if (RouteState.awaitingSecrets > 0 || RouteState.awaitingSecretConfirmation) {
+            val leftClickDown = mc.options.keyAttack.isDown
+            if (leftClickDown && !leftClickWasDown) {
+                val hit = mc.hitResult
+                if (hit == null || hit.type == HitResult.Type.MISS) SecretListener.manualTrigger()
+            }
+            leftClickWasDown = leftClickDown
+        } else leftClickWasDown = mc.options.keyAttack.isDown
+
+        crouchTicks = if (player.isCrouching) crouchTicks + 1 else 0
+        if (!RouteState.routeActive && !config.configMode() && crouchTicks >= minCrouchTicks) checkStartNodeEtherwarp(room)
+
+        if (RouteState.awaitingSecretConfirmation) {
+            val node = RouteState.pendingAwaitNode
+            if (node?.type == WPType.ETHER && !SneakHandler.isSneaking()) SneakHandler.setSneak(true)
+            RouteState.secretConfirmationTicks--
+            RouteUtils.debug("§eWaiting for SecretAura... ${RouteState.secretConfirmationTicks} ticks")
+            if (RouteState.secretConfirmationTicks <= 0) {
+                val idx = RouteState.pendingAwaitNodeIndex
+                val awaitRoom = RouteState.pendingAwaitNodeRoom
+                if (node != null) {
+                    RouteUtils.debug("§aSecretAura wait finished! Executing node #$idx")
+                    RouteState.lock()
+                    if (BurstMode.enabled && node.type == WPType.ETHER) {
+                        val chain = BurstMode.findBurstChain(node, idx, RouteState.nodeList, awaitRoom, skipFirstNodeChecks = true)
+                        if (chain.nodes.size > 1) { RouteUtils.debug("§6[Burst] Starting burst chain from await node #$idx (${chain.nodes.size} nodes)"); BurstMode.executeBurstChain(chain, awaitRoom) }
+                        else doNodeAction(node, idx, awaitRoom)
+                    } else doNodeAction(node, idx, awaitRoom)
+                }
+                RouteState.awaitingSecretConfirmation = false
+                RouteState.pendingAwaitNode = null
+                RouteState.pendingAwaitNodeIndex = -1
+                RouteState.pendingAwaitNodeRoom = null
+            }
+            RouteState.previousPosition = player.position()
+            return
+        }
+
+        if (RouteState.isDelaying()) {
+            RouteState.delayTicksRemaining--
+            if (RouteState.delayTicksRemaining <= 0) {
+                val node = RouteState.delayingNode
+                val idx = RouteState.delayingNodeIndex
+                val delayRoom = RouteState.delayingNodeRoom
+                if (node != null) {
+                    RouteUtils.debug("§aDelay finished! Executing node #$idx")
+                    RouteState.lock()
+                    if (BurstMode.enabled && node.type == WPType.ETHER) {
+                        val chain = BurstMode.findBurstChain(node, idx, RouteState.nodeList, delayRoom, skipFirstNodeChecks = true)
+                        if (chain.nodes.size > 1) { RouteUtils.debug("§6[Burst] Starting burst chain from delay node #$idx (${chain.nodes.size} nodes)"); BurstMode.executeBurstChain(chain, delayRoom) }
+                        else doNodeAction(node, idx, delayRoom)
+                    } else doNodeAction(node, idx, delayRoom)
+                }
+                RouteState.delayingNode = null
+                RouteState.delayingNodeIndex = -1
+                RouteState.delayingNodeRoom = null
+            }
+            RouteState.previousPosition = player.position()
+            return
+        }
+
+        if (RouteState.isLocked() || RouteState.awaitingSecrets > 0) { RouteState.previousPosition = player.position(); return }
+
+        val currentPos = player.position()
+        checkIntersection(RouteState.previousPosition, currentPos, room)
+        RouteState.previousPosition = currentPos
+    }
+
+    @SubscribeEvent
+    fun onPacketReceive(event: PacketEvent.Receive) {
+        val packet = event.packet
+        if (packet !is ClientboundPlayerPositionPacket) return
+        RouteUtils.extraDebug("§a[Packet] Got teleport packet, waitingForTeleport=${RouteState.waitingForTeleport}")
+        val pos = packet.change().position()
+        RouteState.previousPosition = Vec3(pos.x, pos.y, pos.z)
+        if (!RouteState.waitingForTeleport) return
+
+        val idx = RouteState.awaitingTeleportNodeIndex
+        RouteUtils.debug("§a✓ Teleport received! Node #$idx complete")
+        RouteState.nodeCooldowns[idx] = System.currentTimeMillis()
+        RouteState.actionLockedNodes.remove(idx)
+        RouteState.actionLockTimes.remove(idx)
+        SneakHandler.clearCallbacks()
+        RouteState.waitingForTeleport = false
+        RouteState.awaitingTeleportNodeIndex = -1
+        RouteState.unlock()
+    }
+
+    @SubscribeEvent
+    fun onWorldLoad(event: WorldEvent) {
+        RouteState.fullReset()
+        SneakHandler.releaseSneak()
+        BatListener.cancel()
+        NodeManager.reloadFromDisk()
+    }
+
+    private fun checkIntersection(prevPos: Vec3, currentPos: Vec3, room: Room?): Boolean {
+        val now = System.currentTimeMillis()
+
+        for ((index, node) in RouteState.nodeList.withIndex()) {
+            if (index in RouteState.actionLockedNodes) {
+                val lockTime = RouteState.actionLockTimes[index] ?: 0L
+                if (now - lockTime < RouteState.ACTION_LOCK_TIMEOUT_MS) continue
+                RouteState.actionLockedNodes.remove(index)
+                RouteState.actionLockTimes.remove(index)
+            }
+
+            val lastTrigger = RouteState.nodeCooldowns[index]
+            if (lastTrigger != null && now - lastTrigger < nodeCooldownMs) continue
+
+            val nodeWorldPos = RouteUtils.getNodeWorldPosition(node, room)
+            if (!intersectsNode(currentPos, nodeWorldPos, node.radius, node.height)) continue
+
+            if (!config.configMode() && !RouteState.routeActive) {
+                if (!node.start) continue
+                RouteState.routeActive = true
+                RouteUtils.debug("§a[Route] Activated from start node #$index")
+            }
+
+            RouteUtils.debug("§b>>> Triggered node #$index (${node.type})")
+            RouteUtils.debug("§c[Cooldown] Setting cooldown for node #$index")
+            RouteState.nodeCooldowns[index] = now
+            executeNode(node, index, room)
+            return true
+        }
+        return false
+    }
+
+    private fun checkStartNodeEtherwarp(room: Room?) {
+        val player = mc.player ?: return
+        val now = System.currentTimeMillis()
+        if (now - lastEtherwarpClickTime < etherwarpClickCooldownMs) return
+
+        val etherPos = BurstMode.getEtherwarpPositionFromPlayer() ?: return
+        for (node in RouteState.nodeList) {
+            if (!node.start) continue
+
+            val nodeBlockPos = BlockPos(floor(node.x).toInt(), node.y.toInt(), floor(node.z).toInt())
+            val worldBlockPos = if (DungeonUtils.inDungeons && room != null) room.getRealCoords(nodeBlockPos) ?: nodeBlockPos else nodeBlockPos
+
+            if (etherPos.x == worldBlockPos.x && etherPos.y == worldBlockPos.y && etherPos.z == worldBlockPos.z) {
+                if (!player.isCrouching) { RouteUtils.debug("§c[StartEther] Player uncrouched, aborting"); return }
+                RouteUtils.debug("§a[StartEther] Etherwarp target matches start node, sending click")
+                lastEtherwarpClickTime = now
+
+                if (RouteUtils.swapToItem("Aspect of the Void") == SwapResult.FAIL) { RouteUtils.debug("§c[StartEther] Failed to swap to AOTV"); return }
+                RightClickHandler.doPacketInteract(InteractionHand.MAIN_HAND, player.yRot, player.xRot)
+                return
+            }
+        }
+    }
+
+    private fun intersectsNode(currentPos: Vec3, nodePos: Vec3, radius: Double, height: Double): Boolean {
+        val dx = currentPos.x - nodePos.x
+        val dz = currentPos.z - nodePos.z
+        val inRadius = dx * dx + dz * dz <= radius * radius
+        val inHeight = currentPos.y >= nodePos.y && currentPos.y <= nodePos.y + height
+        return inRadius && inHeight
+    }
+
+    fun executeNodePublic(node: WaypointNode, index: Int, room: Room?) =
+        doNodeAction(node, index, room)
+
+    private fun executeNode(node: WaypointNode, index: Int, room: Room?) {
+        RouteState.lock()
+        RouteState.actionLockedNodes.add(index)
+        RouteState.actionLockTimes[index] = System.currentTimeMillis()
+
+        when {
+            node.delay > 0 -> {
+                RouteUtils.debug("§eNode #$index delaying ${node.delay} ticks")
+                RouteState.delayingNode = node
+                RouteState.delayingNodeIndex = index
+                RouteState.delayingNodeRoom = room
+                RouteState.delayTicksRemaining = node.delay
+                RouteState.unlock()
+            }
+            node.awaitBat -> {
+                RouteUtils.debug("§eNode #$index waiting for bat spawn")
+                BatListener.startWaitingForBat(node, index, room)
+                RouteState.unlock()
+            }
+            node.awaitSecret > 0 -> {
+                RouteUtils.debug("§eNode #$index requires ${node.awaitSecret} secret(s) of type: ${node.awaitType}")
+                SecretListener.setAwaitType(node.awaitType)
+                if (node.type == WPType.ETHER) { RouteUtils.debug("§eETHER await node - starting sneak"); SneakHandler.setSneak(true) }
+                else if (node.type == WPType.AOTV) { RouteUtils.debug("§eAOTV await node - releasing sneak"); SneakHandler.releaseSneak() }
+                RouteState.awaitingSecrets = node.awaitSecret
+                RouteState.pendingNodeIndex = index
+                SecretListener.checkBufferedItems()
+                RouteState.unlock()
+            }
+            else -> doNodeAction(node, index, room)
+        }
+    }
+
+    private fun doNodeAction(node: WaypointNode, index: Int, room: Room?) {
+        val player = mc.player ?: run { RouteState.unlock(); return }
+
+        if (node.stop) player.deltaMovement = Vec3(0.0, player.deltaMovement.y, 0.0)
+        if (node.center) RouteUtils.getNodeWorldPosition(node, room).let { player.setPos(it.x, player.y, it.z) }
+
+        val realYaw = RouteUtils.getRealYaw(node.yaw, room)
+        val pitch = node.pitch
+        RouteUtils.debug("§d  yaw=${"%.1f".format(realYaw)}, pitch=${"%.1f".format(pitch)}")
+
+        if (BurstMode.shouldBurst(node)) {
+            val chain = BurstMode.findBurstChain(node, index, RouteState.nodeList, room)
+            if (chain.nodes.size > 1) {
+                RouteUtils.debug("§6[Burst] Executing ${chain.nodes.size}-node chain from #$index")
+                BurstMode.executeBurstChain(chain, room)
+                return
+            }
+            RouteUtils.debug("§7[Burst] Single node, using normal execution")
+        }
+
+        when (node.type) {
+            WPType.ETHER -> executeEther(realYaw, pitch)
+            WPType.AOTV -> executeAotv(realYaw, pitch)
+            WPType.HYPE -> executeHype(realYaw, pitch)
+            WPType.SUPERBOOM -> executeSuperboom(node, room, realYaw, pitch)
+            WPType.USEITEM -> executeUseItem(node, realYaw, pitch)
+            WPType.LOOK -> executeLook(realYaw, pitch)
+            WPType.NOP -> { RouteUtils.debug("§7  NOP - no action"); RouteState.unlock() }
+        }
+    }
+
+    private fun executeEther(yaw: Float, pitch: Float) =
+        if (SneakHandler.isSneaking()) doEtherClick(yaw, pitch) else SneakHandler.setSneak(true) { doEtherClick(yaw, pitch) }
+
+    private fun doEtherClick(yaw: Float, pitch: Float) {
+        if (RouteUtils.swapToItem("Aspect of the Void") == SwapResult.FAIL) {
+            RouteUtils.debug("§c  Failed to swap to AOTV")
+            SneakHandler.releaseSneak()
+            RouteState.unlock()
+            RouteState.waitingForTeleport = false
+            return
+        }
+        RightClickHandler.doPacketInteract(InteractionHand.MAIN_HAND, yaw, pitch)
+        if (!RouteState.waitingForTeleport) RouteState.unlock()
+    }
+
+    private fun executeAotv(yaw: Float, pitch: Float) {
+        SneakHandler.releaseSneak()
+        if (RouteUtils.swapToItem("Aspect of the Void") == SwapResult.FAIL) { RouteUtils.debug("§c  Failed to swap to AOTV"); RouteState.unlock(); return }
+        RightClickHandler.doPacketInteract(InteractionHand.MAIN_HAND, yaw, pitch)
+        if (!RouteState.waitingForTeleport) RouteState.unlock()
+    }
+
+    private fun executeHype(yaw: Float, pitch: Float) {
+        SneakHandler.releaseSneak()
+        val result = RouteUtils.swapToItem("Hyperion").let { first -> if (first != SwapResult.FAIL) first else RouteUtils.swapToItem("Spirit Sceptre") }
+        if (result == SwapResult.FAIL) { RouteUtils.debug("§c  Failed to swap to Hyperion or Spirit Scepter"); RouteState.unlock(); RouteState.waitingForTeleport = false; return }
+        RightClickHandler.doPacketInteract(InteractionHand.MAIN_HAND, yaw, pitch)
+        if (!RouteState.waitingForTeleport) RouteState.unlock()
+    }
+
+    private fun executeSuperboom(node: WaypointNode, room: Room?, yaw: Float, pitch: Float) {
+        val targetBlock = node.targetBlock ?: run { RouteUtils.debug("§c  Superboom has no target block"); RouteState.unlock(); return }
+        if (RouteUtils.swapToItem("Superboom") == SwapResult.FAIL) { RouteUtils.debug("§c  Failed to swap to Superboom TNT"); RouteState.unlock(); return }
+
+        val player = mc.player ?: run { RouteState.unlock(); return }
+        val worldTarget = if (DungeonUtils.inDungeons && room != null) room.getRealCoords(targetBlock) ?: targetBlock else targetBlock
+        val hit = RouteUtils.raytraceToBlock(player.eyePosition, worldTarget) ?: run { RouteUtils.debug("§c  Could not raytrace to superboom target"); RouteState.unlock(); return }
+
+        RightClickHandler.doBlockInteract(hit)
+        RouteState.unlock()
+    }
+
+    private fun executeUseItem(node: WaypointNode, yaw: Float, pitch: Float) {
+        SneakHandler.releaseSneak()
+        val itemName = node.itemName ?: run { RouteUtils.debug("§c  UseItem has no item name"); RouteState.unlock(); return }
+        if (RouteUtils.swapToItem(itemName) == SwapResult.FAIL) { RouteUtils.debug("§c  Failed to swap to $itemName"); RouteState.unlock(); return }
+        RightClickHandler.doPacketInteract(InteractionHand.MAIN_HAND, yaw, pitch)
+        RouteState.unlock()
+    }
+
+    private fun executeLook(yaw: Float, pitch: Float) {
+        val player = mc.player ?: run { RouteState.unlock(); return }
+        player.yRot = yaw
+        player.xRot = pitch
+        SneakHandler.releaseSneak()
+        RouteState.routeActive = false
+        RouteUtils.debug("§c[Route] Ended (look node)")
+        RouteState.unlock()
+    }
+
+    fun onSecretCollected() {
+        if (RouteState.awaitingSecrets <= 0) return
+        RouteState.awaitingSecrets--
+        RouteUtils.debug("§aSecret! (${RouteState.awaitingSecrets} remaining)")
+        if (RouteState.awaitingSecrets > 0) return
+
+        val idx = RouteState.pendingNodeIndex
+        val node = RouteState.nodeList.getOrNull(idx)
+        val room = RouteState.currentRoom
+        if (node != null) { RouteUtils.debug("§a§lSecrets done, executing node #$idx"); RouteState.lock(); doNodeAction(node, idx, room) }
+        RouteState.pendingNodeIndex = -1
+    }
+
+    private fun getCurrentKey(room: Room?): String? =
+        if (!LocationUtils.isInSkyblock) null else if (DungeonUtils.inDungeons) room?.data?.name else LocationUtils.currentArea?.toString()
+}
