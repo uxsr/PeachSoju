@@ -158,7 +158,7 @@ object  NodeManager {
         val fracZ = player.z - floor(player.z)
 
         val targetBlock = if (type == WPType.SUPERBOOM) getTargetBlock(player, room) else null
-        if (type == WPType.SUPERBOOM && targetBlock == null) return "§c[AR] Superboom requires looking at a block!"
+        if (type == WPType.SUPERBOOM && targetBlock == null) return "§c[AR] Superboom requires looking at a block"
 
         val node = makeNode(floorBlock, fracX, fracZ, room, type, yaw, pitch, modifiers, targetBlock)
         val list = waypoints.getOrPut(key) { mutableListOf() }

@@ -168,7 +168,7 @@ object BurstMode {
         val chain = findBurstChain(startNode, startIndex, allNodes, room)
         if (chain.nodes.size <= 1) { executingBurst = false; return }
 
-        RouteUtils.extraDebug("§6§l[Burst] Executing ${chain.nodes.size} nodes!")
+        RouteUtils.extraDebug("§6§l[Burst] Executing ${chain.nodes.size} nodes")
         val now = System.currentTimeMillis()
         chain.indices.forEach { idx ->
             RouteUtils.extraDebug("§c[Burst Cooldown] Setting cooldown for nodes: ${chain.indices}")
@@ -188,7 +188,7 @@ object BurstMode {
         if (chain.nodes.isEmpty()) return
         executingBurst = true
 
-        RouteUtils.extraDebug("§6§l[Burst] Executing ${chain.nodes.size} nodes!")
+        RouteUtils.extraDebug("§6§l[Burst] Executing ${chain.nodes.size} nodes")
         val now = System.currentTimeMillis()
         chain.indices.forEach { idx ->
             RouteUtils.extraDebug("§c[Burst Cooldown] Setting cooldown for nodes: ${chain.indices}")
@@ -206,11 +206,11 @@ object BurstMode {
         }
 
         RouteUtils.extraDebug("§e[Burst] About to call setSneak. isSneaking=${SneakHandler.isSneaking()}")
-        RouteUtils.extraDebug("§6§l[Burst] Executing ${chain.nodes.size} nodes!")
+        RouteUtils.extraDebug("§6§l[Burst] Executing ${chain.nodes.size} nodes")
         RouteUtils.extraDebug("§6[Burst] Chain indices: ${chain.indices}")
 
         SneakHandler.setSneak(true) {
-            RouteUtils.extraDebug("§a[Burst] Sneak callback fired!")
+            RouteUtils.extraDebug("§a[Burst] Sneak callback fired")
             doBurstClicks(clicks)
         }
 

@@ -80,7 +80,7 @@ object Autoroutes {
                 val idx = RouteState.pendingAwaitNodeIndex
                 val awaitRoom = RouteState.pendingAwaitNodeRoom
                 if (node != null) {
-                    RouteUtils.debug("§aSecretAura wait finished! Executing node #$idx")
+                    RouteUtils.debug("§aSecretAura wait finished. Executing node #$idx")
                     RouteState.lock()
                     if (BurstMode.enabled && node.type == WPType.ETHER) {
                         val chain = BurstMode.findBurstChain(node, idx, RouteState.nodeList, awaitRoom, skipFirstNodeChecks = true)
@@ -104,7 +104,7 @@ object Autoroutes {
                 val idx = RouteState.delayingNodeIndex
                 val delayRoom = RouteState.delayingNodeRoom
                 if (node != null) {
-                    RouteUtils.debug("§aDelay finished! Executing node #$idx")
+                    RouteUtils.debug("§aDelay finished Executing node #$idx")
                     RouteState.lock()
                     if (BurstMode.enabled && node.type == WPType.ETHER) {
                         val chain = BurstMode.findBurstChain(node, idx, RouteState.nodeList, delayRoom, skipFirstNodeChecks = true)
@@ -137,7 +137,7 @@ object Autoroutes {
         if (!RouteState.waitingForTeleport) return
 
         val idx = RouteState.awaitingTeleportNodeIndex
-        RouteUtils.debug("§a✓ Teleport received! Node #$idx complete")
+        RouteUtils.debug("§aTeleport received Node #$idx complete")
         RouteState.nodeCooldowns[idx] = System.currentTimeMillis()
         RouteState.actionLockedNodes.remove(idx)
         RouteState.actionLockTimes.remove(idx)

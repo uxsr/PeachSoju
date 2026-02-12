@@ -45,7 +45,7 @@ object BatListener {
 
         if (bats.isNotEmpty()) {
             val distance = player.position().distanceTo(bats[0].position())
-            RouteUtils.debug("§a[Bat] Bat detected at distance ${"%.1f".format(distance)}!")
+            RouteUtils.debug("§a[Bat] Bat detected at distance ${"%.1f".format(distance)}")
             onBatSpawned()
         }
     }
@@ -56,7 +56,7 @@ object BatListener {
         val room = awaitingRoom
 
         if (node != null) {
-            RouteUtils.debug("§a[Bat] Bat spawned! Executing node #$index")
+            RouteUtils.debug("§a[Bat] Bat spawned. Executing node #$index")
             RouteState.waitingForTeleport = true
             RouteState.awaitingTeleportNodeIndex = index
             RouteState.lock()
