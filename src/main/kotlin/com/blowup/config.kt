@@ -29,7 +29,9 @@ object config {
         var waypointEditing: Boolean = false,
         var showLines: Boolean = false,
         var nodeAppearances: MutableMap<String, NodeAppearance> = mutableMapOf(),
-        var renderOnlyStartNodes: Boolean = false
+        var renderOnlyStartNodes: Boolean = false,
+        var fmBlocksEnabled: Boolean = false,
+        var fmBlocksEditMode: Boolean = false
     )
 
     @Volatile private var data = Data()
@@ -104,6 +106,12 @@ object config {
     fun getNodeAppearance(type: WPType): NodeAppearance {
         return data.nodeAppearances[type.name] ?: defaultAppearances[type] ?: NodeAppearance()
     }
+    fun fmBlocksEnabled() = data.fmBlocksEnabled
+    fun setFmBlocksEnabled(v: Boolean) { data.fmBlocksEnabled = v; save() }
+    fun toggleFmBlocksEnabled() = (!data.fmBlocksEnabled).also { data.fmBlocksEnabled = it; save() }
+    fun fmBlocksEditMode() = data.fmBlocksEditMode
+    fun setFmBlocksEditMode(v: Boolean) { data.fmBlocksEditMode = v; save() }
+    fun toggleFmBlocksEditMode() = (!data.fmBlocksEditMode).also { data.fmBlocksEditMode = it; save() }
 
     fun setNodeColor(type: WPType, r: Int, g: Int, b: Int, a: Float) {
         val appearance = data.nodeAppearances.getOrPut(type.name) { NodeAppearance() }

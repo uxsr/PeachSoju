@@ -12,6 +12,9 @@ import com.blowup.modules.impl.autoroutes.BatListener
 import com.blowup.modules.impl.autoroutes.BurstMode
 import com.blowup.modules.impl.autoroutes.SecretListener
 import com.blowup.modules.impl.autoroutes.NodeManager
+import com.blowup.modules.impl.fmblocks.FMBlocksCommands
+import com.blowup.modules.impl.fmblocks.FMBlocksEditMode
+import com.blowup.modules.impl.fmblocks.FMBlocksManager
 import net.fabricmc.api.ModInitializer
 import net.minecraft.client.Minecraft
 import org.slf4j.LoggerFactory
@@ -26,6 +29,9 @@ object PeachSoju : ModInitializer {
 		AutoRoutesCommand.register()
 		PeachSojuCommand.register()
 		RotateCommand.register()
+		FMBlocksCommands.register()
+		eventBus.register(FMBlocksManager)
+		eventBus.register(FMBlocksEditMode)
 		eventBus.register(NodeManager)
 		eventBus.register(Autoroutes)
 		eventBus.register(SecretListener)
