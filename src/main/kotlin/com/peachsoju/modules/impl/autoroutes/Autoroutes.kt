@@ -1,5 +1,6 @@
 package com.peachsoju.modules.impl.autoroutes
 
+import com.odtheking.odin.features.impl.render.Etherwarp
 import com.peachsoju.PeachSoju.mc
 import com.peachsoju.config
 import com.peachsoju.eventbus.SubscribeEvent
@@ -27,12 +28,7 @@ object Autoroutes {
 
     private val enabled get() = config.autoroutes()
     private const val nodeCooldownMs = 150L
-    private const val etherwarpClickCooldownMs = 500L
-    private const val minCrouchTicks = 2
-
     private var leftClickWasDown = false
-    private var lastEtherwarpClickTime = 0L
-    private var crouchTicks = 0
 
     @SubscribeEvent
     fun onTick(event: TickEvent.Start) {
@@ -68,8 +64,7 @@ object Autoroutes {
             leftClickWasDown = leftClickDown
         } else leftClickWasDown = mc.options.keyAttack.isDown
 
-        crouchTicks = if (player.isCrouching) crouchTicks + 1 else 0
-        if (!RouteState.routeActive && !config.configMode() && crouchTicks >= minCrouchTicks) checkStartNodeEtherwarp(room)
+        if (!RouteState.routeActive && !config.configMode()) checkStartNodeEtherwarp(room)
 
         if (RouteState.awaitingSecretConfirmation) {
             val node = RouteState.pendingAwaitNode
@@ -130,6 +125,9 @@ object Autoroutes {
     @SubscribeEvent
     fun onPacketReceive(event: PacketEvent.Receive) {
         val packet = event.packet
+        if (packet is ClientboundPlayerPositionPacket && pendingEtherwarps.isNotEmpty()) {
+            pendingEtherwarps.removeFirst()
+        }
         if (packet !is ClientboundPlayerPositionPacket) return
         RouteUtils.extraDebug("§a[Packet] Got teleport packet, waitingForTeleport=${RouteState.waitingForTeleport}")
         val pos = packet.change().position()
@@ -153,6 +151,8 @@ object Autoroutes {
         SneakHandler.releaseSneak()
         BatListener.cancel()
         NodeManager.reloadFromDisk()
+        pendingEtherwarps.clear()
+        lastStartNode = null
     }
 
     private fun checkIntersection(prevPos: Vec3, currentPos: Vec3, room: Room?): Boolean {
@@ -187,25 +187,47 @@ object Autoroutes {
         return false
     }
 
+    private val pendingEtherwarps = mutableListOf<Vec3>()
+    private var timeSinceEther = 0L
+    private var lastStartNode: WaypointNode? = null
+
     private fun checkStartNodeEtherwarp(room: Room?) {
         val player = mc.player ?: return
-        val now = System.currentTimeMillis()
-        if (now - lastEtherwarpClickTime < etherwarpClickCooldownMs) return
 
-        val etherPos = BurstMode.getEtherwarpPositionFromPlayer() ?: return
+        if (System.currentTimeMillis() - timeSinceEther > 500L) {
+            pendingEtherwarps.clear()
+        }
+
+        if (!RouteUtils.isHoldingItem("Aspect of the Void")) return
+        if (!player.isShiftKeyDown && !player.isCrouching) return
+
+        val etherwarpBlock = if (pendingEtherwarps.isNotEmpty()) {
+            Etherwarp.getEtherPos(pendingEtherwarps.last(), 61.0, etherWarp = true)
+        } else {
+            Etherwarp.getEtherPos(player.position(), 61.0, etherWarp = true)
+        }
+
+        if (!etherwarpBlock.succeeded) return
+        val etherPos = etherwarpBlock.pos ?: return
+
         for (node in RouteState.nodeList) {
             if (!node.start) continue
 
             val nodeBlockPos = BlockPos(floor(node.x).toInt(), node.y.toInt(), floor(node.z).toInt())
-            val worldBlockPos = if (DungeonUtils.inDungeons && room != null) room.getRealCoords(nodeBlockPos) ?: nodeBlockPos else nodeBlockPos
+            val worldBlockPos = if (DungeonUtils.inDungeons && room != null) {
+                room.getRealCoords(nodeBlockPos) ?: nodeBlockPos
+            } else {
+                nodeBlockPos
+            }
 
-            if (etherPos.x == worldBlockPos.x && etherPos.y == worldBlockPos.y && etherPos.z == worldBlockPos.z) {
-                if (!player.isCrouching) { RouteUtils.debug("§c[StartEther] Player uncrouched, aborting"); return }
-                RouteUtils.debug("§a[StartEther] Etherwarp target matches start node, sending click")
-                lastEtherwarpClickTime = now
+            if ((lastStartNode != node || (System.currentTimeMillis() - timeSinceEther) > 500L) && etherPos == worldBlockPos) {
 
-                if (RouteUtils.swapToItem("Aspect of the Void") == SwapResult.FAIL) { RouteUtils.debug("§c[StartEther] Failed to swap to AOTV"); return }
                 RightClickHandler.doPacketInteract(InteractionHand.MAIN_HAND, player.yRot, player.xRot)
+
+                pendingEtherwarps.add(etherwarpBlock.vec3.add(0.5, 0.05 + player.eyeHeight.toDouble(), 0.5))
+                timeSinceEther = System.currentTimeMillis()
+                lastStartNode = node
+
                 return
             }
         }

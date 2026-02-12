@@ -32,9 +32,3 @@ data class FMBlocksRoomData(
     }
 }
 
-enum class FmEditAction {
-    PLACE_CUSTOM_BLOCK,
-    REMOVE_CUSTOM_BLOCK,
-    ADD_GHOST_BLOCK,
-    REMOVE_GHOST_BLOCK
-}

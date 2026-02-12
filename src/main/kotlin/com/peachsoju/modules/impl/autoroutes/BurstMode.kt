@@ -129,7 +129,8 @@ object BurstMode {
         var currentNode = startNode
         var currentIndex = startIndex
 
-        while (true) {
+        val maxIterations = allNodes.size
+        for (iteration in 0 until allNodes.size) {
             if (!visited.add(currentIndex)) { RouteUtils.extraDebug("§c[Burst] Stop: node #$currentIndex already visited (loop detected)"); break }
             val isFirstNode = chain.isEmpty()
 
@@ -289,7 +290,7 @@ object BurstMode {
         return getEtherPos(startPos, startPos.add(lookVec.scale(etherwarpDistance))).pos
     }
 
-    private fun getEtherPos(start: Vec3, end: Vec3): EtherPos {
+    fun getEtherPos(start: Vec3, end: Vec3): EtherPos {
         val level = mc.level ?: return EtherPos.none
 
         val x0 = start.x; val y0 = start.y; val z0 = start.z
@@ -367,11 +368,19 @@ object BurstMode {
         return null
     }
 
-    private fun getLookVector(yaw: Float, pitch: Float): Vec3 {
+    fun getLookVector(yaw: Float, pitch: Float): Vec3 {
         val yawRad = Math.toRadians(yaw.toDouble())
         val pitchRad = Math.toRadians(pitch.toDouble())
         val xz = cos(pitchRad)
         return Vec3(-xz * sin(yawRad), -sin(pitchRad), xz * cos(yawRad))
+    }
+
+    fun getEtherwarpPosFromVec3(pos: Vec3): BlockPos? {
+        val player = mc.player ?: return null
+        val startPos = pos
+        val lookVec = BurstMode.getLookVector(player.yRot, player.xRot)
+        val endPos = startPos.add(lookVec.scale(61.0))
+        return BurstMode.getEtherPos(startPos, endPos).pos
     }
 
     private fun formatCoord(value: Double): String = "%.2f".format(value)

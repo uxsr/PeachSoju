@@ -10,7 +10,7 @@ object config {
     private val gson = GsonBuilder().setPrettyPrinting().create()
     private val path: Path = FabricLoader.getInstance().configDir.resolve("PeachSoju.json")
 
-    data class NodeColor(var r: Int = 255, var g: Int = 255, var b: Int = 255, var a: Float = 0.35f)
+    data class NodeColor(var r: Int = 255, var g: Int = 255, var b: Int = 255, var a: Float = 0.60f)
 
     data class NodeAppearance(
         var color: NodeColor = NodeColor(),
@@ -37,13 +37,13 @@ object config {
     @Volatile private var data = Data()
 
     private val defaultAppearances = mapOf(
-        WPType.ETHER to NodeAppearance(NodeColor(85, 255, 255, 0.35f), "PULSE_PYRAMID"),
-        WPType.AOTV to NodeAppearance(NodeColor(255, 179, 142, 0.35f), "PULSE_PYRAMID"),
-        WPType.HYPE to NodeAppearance(NodeColor(170, 85, 255, 0.35f), "PULSE_PYRAMID"),
-        WPType.SUPERBOOM to NodeAppearance(NodeColor(255, 85, 85, 0.35f), "PULSE_PYRAMID"),
-        WPType.USEITEM to NodeAppearance(NodeColor(85, 255, 85, 0.35f), "PULSE_PYRAMID"),
-        WPType.LOOK to NodeAppearance(NodeColor(255, 255, 85, 0.35f), "PULSE_PYRAMID"),
-        WPType.NOP to NodeAppearance(NodeColor(170, 170, 170, 0.35f), "PULSE_PYRAMID")
+        WPType.ETHER to NodeAppearance(NodeColor(85, 255, 255, 0.60f), "PULSE_PYRAMID"),
+        WPType.AOTV to NodeAppearance(NodeColor(255, 179, 142, 0.60f), "PULSE_PYRAMID"),
+        WPType.HYPE to NodeAppearance(NodeColor(170, 85, 255, 0.60f), "PULSE_PYRAMID"),
+        WPType.SUPERBOOM to NodeAppearance(NodeColor(255, 85, 85, 0.60f), "PULSE_PYRAMID"),
+        WPType.USEITEM to NodeAppearance(NodeColor(85, 255, 85, 0.60f), "PULSE_PYRAMID"),
+        WPType.LOOK to NodeAppearance(NodeColor(255, 255, 85, 0.60f), "PULSE_PYRAMID"),
+        WPType.NOP to NodeAppearance(NodeColor(170, 170, 170, 0.60f), "PULSE_PYRAMID")
     )
 
     fun load(): Data {

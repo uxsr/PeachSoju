@@ -76,4 +76,11 @@ object RouteUtils {
         if (y < -180f) y += 360f
         return y
     }
+
+    fun isHoldingItem(itemName: String): Boolean {
+        val player = mc.player ?: return false
+        val heldItem = player.mainHandItem
+        val displayName = heldItem.hoverName.string
+        return displayName.contains(itemName, ignoreCase = true)
+    }
 }
