@@ -182,7 +182,16 @@ object BurstMode {
 
         val clicks = chain.nodes.map { RouteUtils.getRealYaw(it.yaw, room) to it.pitch }
 
-        SneakHandler.setSneak(true) { doBurstClicks(clicks) }
+        val lastNode = chain.nodes.last()
+        val lastNodeWorldPos = RouteUtils.getNodeWorldPosition(lastNode, room)
+        val landingPos = predictEtherwarpLanding(lastNode, lastNodeWorldPos, room)
+        val landingNode = if (landingPos != null) {
+            findNodeAtPosition(landingPos, allNodes, room, chain.indices.toSet())?.first
+        } else null
+
+        val shouldReleaseSneak = landingNode?.type == WPType.AOTV
+
+        SneakHandler.setSneak(true) { doBurstClicks(clicks, shouldReleaseSneak) }
     }
 
     fun executeBurstChain(chain: BurstChain, room: Room?) {
@@ -206,13 +215,25 @@ object BurstMode {
             realYaw to it.pitch
         }
 
+        val lastNode = chain.nodes.last()
+        val lastNodeWorldPos = RouteUtils.getNodeWorldPosition(lastNode, room)
+        val landingPos = predictEtherwarpLanding(lastNode, lastNodeWorldPos, room)
+        val landingNode = if (landingPos != null) {
+            findNodeAtPosition(landingPos, RouteState.nodeList, room, chain.indices.toSet())?.first
+        } else null
+
+        val landingNodeType = landingNode?.type
+        val shouldReleaseSneak = landingNodeType == WPType.AOTV
+
+        RouteUtils.extraDebug("§e[Burst] Landing node type: $landingNodeType, shouldReleaseSneak: $shouldReleaseSneak")
+
         RouteUtils.extraDebug("§e[Burst] About to call setSneak. isSneaking=${SneakHandler.isSneaking()}")
         RouteUtils.extraDebug("§6§l[Burst] Executing ${chain.nodes.size} nodes")
         RouteUtils.extraDebug("§6[Burst] Chain indices: ${chain.indices}")
 
         SneakHandler.setSneak(true) {
             RouteUtils.extraDebug("§a[Burst] Sneak callback fired")
-            doBurstClicks(clicks)
+            doBurstClicks(clicks, shouldReleaseSneak)
         }
 
         RouteUtils.extraDebug("§e[Burst] setSneak called, waiting for callback...")
@@ -251,8 +272,8 @@ object BurstMode {
         return getEtherPos(startPos, endPos).pos
     }
 
-    private fun doBurstClicks(clicks: List<Pair<Float, Float>>) {
-        RouteUtils.extraDebug("§6[Burst] doBurstClicks() entered with ${clicks.size} clicks")
+    private fun doBurstClicks(clicks: List<Pair<Float, Float>>, releaseSneak: Boolean = false) {
+        RouteUtils.extraDebug("§6[Burst] doBurstClicks() entered with ${clicks.size} clicks, releaseSneak=$releaseSneak")
         if (RouteUtils.swapToItem("Aspect of the Void") == SwapResult.FAIL) {
             RouteUtils.extraDebug("§c[Burst] Failed to swap to AOTV")
             SneakHandler.releaseSneak()
@@ -267,6 +288,11 @@ object BurstMode {
             val (yaw, pitch) = click
             RouteUtils.extraDebug("§7[Burst] Click #$i: yaw=${formatAngle(yaw)}, pitch=${formatAngle(pitch)}")
             RightClickHandler.doPacketInteract(InteractionHand.MAIN_HAND, yaw, pitch)
+        }
+
+        if (releaseSneak) {
+            RouteUtils.extraDebug("§e[Burst] Releasing sneak for AOTV landing")
+            SneakHandler.releaseSneak()
         }
 
         RouteUtils.extraDebug("§a[Burst] All packets sent! Waiting for teleport...")
