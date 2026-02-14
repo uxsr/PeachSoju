@@ -138,7 +138,9 @@ object AutoRoutesCommand {
                             .then(
                                 ClientCommandManager.argument("args", StringArgumentType.greedyString())
                                     .executes { ctx ->
-                                        val result = NodeManager.addFromCommand(StringArgumentType.getString(ctx, "args"))
+                                        val rawArgs = StringArgumentType.getString(ctx, "args")
+                                        val expanded = expandAliases(rawArgs)
+                                        val result = NodeManager.addFromCommand(expanded)
                                         ctx.source.sendFeedback(Component.literal(result))
                                         Command.SINGLE_SUCCESS
                                     }
@@ -252,4 +254,35 @@ object AutoRoutesCommand {
             )
         }
     }
+
+    private fun expandAliases(raw: String): String {
+        val parts = raw.trim().split(Regex("\\s+")).toMutableList()
+        if (parts.isEmpty()) return raw
+
+        for (i in parts.indices) {
+            val p = parts[i]
+
+            val awaitMatch = Regex("^a(\\d+)$", RegexOption.IGNORE_CASE).matchEntire(p)
+            if (awaitMatch != null) {
+                val n = awaitMatch.groupValues[1]
+                parts[i] = "await:$n"
+                continue
+            }
+
+            val delayMatch = Regex("^d(\\d+)$", RegexOption.IGNORE_CASE).matchEntire(p)
+            if (delayMatch != null) {
+                val n = delayMatch.groupValues[1]
+                parts[i] = "delay:$n"
+                continue
+            }
+
+            if (p.equals("ab", ignoreCase = true)) {
+                parts[i] = "awaitbat"
+                continue
+            }
+        }
+
+        return parts.joinToString(" ")
+    }
+
 }
