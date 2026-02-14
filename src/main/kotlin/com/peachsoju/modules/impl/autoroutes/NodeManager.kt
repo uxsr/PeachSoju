@@ -358,7 +358,7 @@ object  NodeManager {
             val blockPosRel = BlockPos(floor(node.x).toInt(), node.y.toInt(), floor(node.z).toInt())
             val blockPosWorld = if (DungeonUtils.inDungeons) getCoordsOfBlock(blockPosRel, room) else blockPosRel
 
-            val aabb = if (fullBlock) AABB(blockPosWorld) else blockPosWorld.getBlockBounds()?.move(blockPosWorld) ?: AABB(blockPosWorld)
+            val aabb = AABB(blockPosWorld)
             val box = aabb.inflate(0.01)
 
             if (node.start) {
