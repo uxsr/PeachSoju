@@ -55,6 +55,46 @@ object Autoroutes {
             RouteUtils.debug("§aRoom changed to: $key (${RouteState.nodeList.size} nodes)")
         }
 
+        if (RouteState.awaitingSecrets > 0) {
+            val awaitIndex = RouteState.pendingNodeIndex
+            val awaitNode = RouteState.nodeList.getOrNull(awaitIndex)
+
+            if (awaitNode != null) {
+                val nodeWorldPos = RouteUtils.getNodeWorldPosition(awaitNode, room)
+                val currentPos = player.position()
+
+                if (!intersectsNode(currentPos, nodeWorldPos, awaitNode.radius, awaitNode.height)) {
+                    RouteUtils.debug("§c[Await] Player left await node #$awaitIndex - cancelling await state")
+                    RouteState.awaitingSecrets = 0
+                    RouteState.pendingNodeIndex = -1
+                    SecretListener.setAwaitType("any")
+                    SneakHandler.releaseSneak()
+                }
+            }
+        }
+
+        if (RouteState.awaitingSecretConfirmation) {
+            val awaitIndex = RouteState.pendingAwaitNodeIndex
+            val awaitNode = RouteState.pendingAwaitNode
+
+            if (awaitNode != null) {
+                val nodeWorldPos = RouteUtils.getNodeWorldPosition(awaitNode, room)
+                val currentPos = player.position()
+
+                if (!intersectsNode(currentPos, nodeWorldPos, awaitNode.radius, awaitNode.height)) {
+                    RouteUtils.debug("§c[Await] Player left await confirmation node #$awaitIndex - cancelling")
+                    RouteState.awaitingSecretConfirmation = false
+                    RouteState.secretConfirmationTicks = 0
+                    RouteState.pendingAwaitNode = null
+                    RouteState.pendingAwaitNodeIndex = -1
+                    RouteState.pendingAwaitNodeRoom = null
+                    RouteState.waitingForTeleport = false
+                    RouteState.awaitingTeleportNodeIndex = -1
+                    SneakHandler.releaseSneak()
+                }
+            }
+        }
+
         if (RouteState.awaitingSecrets > 0 || RouteState.awaitingSecretConfirmation) {
             val leftClickDown = mc.options.keyAttack.isDown
             if (leftClickDown && !leftClickWasDown) {
@@ -129,13 +169,18 @@ object Autoroutes {
             pendingEtherwarps.removeFirst()
         }
         if (packet !is ClientboundPlayerPositionPacket) return
-        RouteUtils.extraDebug("§a[Packet] Got teleport packet, waitingForTeleport=${RouteState.waitingForTeleport}")
+
         val pos = packet.change().position()
-        RouteState.previousPosition = Vec3(pos.x, pos.y, pos.z)
+        val newPos = Vec3(pos.x, pos.y, pos.z)
+        RouteState.previousPosition = newPos
+
+        RouteUtils.extraDebug("§a[Packet] Got teleport packet, waitingForTeleport=${RouteState.waitingForTeleport}")
+
         if (!RouteState.waitingForTeleport) return
 
         val idx = RouteState.awaitingTeleportNodeIndex
-        RouteUtils.debug("§aTeleport received Node #$idx complete")
+        RouteUtils.debug("§aTeleport received. Node #$idx complete")
+
         RouteState.nodeCooldowns[idx] = System.currentTimeMillis()
         RouteState.actionLockedNodes.remove(idx)
         RouteState.actionLockTimes.remove(idx)
@@ -143,6 +188,35 @@ object Autoroutes {
         RouteState.waitingForTeleport = false
         RouteState.awaitingTeleportNodeIndex = -1
         RouteState.unlock()
+
+        checkLandingNode(newPos)
+    }
+
+    private fun checkLandingNode(landingPos: Vec3) {
+        val room = RouteState.currentRoom
+        val now = System.currentTimeMillis()
+
+        for ((nodeIndex, node) in RouteState.nodeList.withIndex()) {
+            val lastTrigger = RouteState.nodeCooldowns[nodeIndex]
+            if (lastTrigger != null && now - lastTrigger < nodeCooldownMs) continue
+
+            if (nodeIndex in RouteState.actionLockedNodes) {
+                val lockTime = RouteState.actionLockTimes[nodeIndex] ?: 0L
+                if (now - lockTime < 150L) continue
+                RouteState.actionLockedNodes.remove(nodeIndex)
+                RouteState.actionLockTimes.remove(nodeIndex)
+            }
+
+            val nodeWorldPos = RouteUtils.getNodeWorldPosition(node, room)
+            if (!intersectsNode(landingPos, nodeWorldPos, node.radius, node.height)) continue
+
+            RouteUtils.debug("§b>>> Post-teleport triggered node #$nodeIndex (${node.type})")
+            RouteState.nodeCooldowns[nodeIndex] = now
+            executeNode(node, nodeIndex, room)
+            return
+        }
+
+        RouteUtils.extraDebug("§7[Post-teleport] No node found at landing position")
     }
 
     @SubscribeEvent
@@ -298,7 +372,7 @@ object Autoroutes {
         }
 
         when (node.type) {
-            WPType.ETHER -> executeEther(realYaw, pitch)
+            WPType.ETHER -> executeEther(realYaw, pitch, index, room)
             WPType.AOTV -> executeAotv(realYaw, pitch)
             WPType.HYPE -> executeHype(realYaw, pitch)
             WPType.SUPERBOOM -> executeSuperboom(node, room, realYaw, pitch)
@@ -308,10 +382,25 @@ object Autoroutes {
         }
     }
 
-    private fun executeEther(yaw: Float, pitch: Float) =
-        if (SneakHandler.isSneaking()) doEtherClick(yaw, pitch) else SneakHandler.setSneak(true) { doEtherClick(yaw, pitch) }
+    private fun executeEther(yaw: Float, pitch: Float, nodeIndex: Int, room: Room?) {
+        val currentNode = RouteState.nodeList.getOrNull(nodeIndex)
+        val shouldReleaseSneak = if (currentNode != null) {
+            val nodeWorldPos = RouteUtils.getNodeWorldPosition(currentNode, room)
+            val landingPos = BurstMode.predictEtherwarpLanding(currentNode, nodeWorldPos, room)
+            val landingNode = if (landingPos != null) {
+                BurstMode.findNodeAtLandingPosition(landingPos, RouteState.nodeList, room, setOf(nodeIndex))
+            } else null
+            landingNode?.type == WPType.AOTV
+        } else false
 
-    private fun doEtherClick(yaw: Float, pitch: Float) {
+        if (SneakHandler.isSneaking()) {
+            doEtherClick(yaw, pitch, shouldReleaseSneak)
+        } else {
+            SneakHandler.setSneak(true) { doEtherClick(yaw, pitch, shouldReleaseSneak) }
+        }
+    }
+
+    private fun doEtherClick(yaw: Float, pitch: Float, releaseSneak: Boolean = false) {
         if (RouteUtils.swapToItem("Aspect of the Void") == SwapResult.FAIL) {
             RouteUtils.debug("§c  Failed to swap to AOTV")
             SneakHandler.releaseSneak()
@@ -320,13 +409,25 @@ object Autoroutes {
             return
         }
         RightClickHandler.doPacketInteract(InteractionHand.MAIN_HAND, yaw, pitch)
+
+        if (releaseSneak) {
+            RouteUtils.debug("§e[Ether] Releasing sneak for AOTV landing")
+            SneakHandler.releaseSneak()
+        }
+
         if (!RouteState.waitingForTeleport) RouteState.unlock()
     }
 
     private fun executeAotv(yaw: Float, pitch: Float) {
+        val player = mc.player ?: run { RouteState.unlock(); return }
+        RouteUtils.debug("§b[AOTV] Before - playerYaw=${player.yRot}, playerPitch=${player.xRot}")
+        RouteUtils.debug("§b[AOTV] Packet will use yaw=$yaw, pitch=$pitch")
+
         SneakHandler.releaseSneak()
         if (RouteUtils.swapToItem("Aspect of the Void") == SwapResult.FAIL) { RouteUtils.debug("§c  Failed to swap to AOTV"); RouteState.unlock(); return }
         RightClickHandler.doPacketInteract(InteractionHand.MAIN_HAND, yaw, pitch)
+
+        RouteUtils.debug("§b[AOTV] After - playerYaw=${player.yRot}, playerPitch=${player.xRot}")
         if (!RouteState.waitingForTeleport) RouteState.unlock()
     }
 

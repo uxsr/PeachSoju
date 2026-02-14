@@ -5,6 +5,7 @@ import com.peachsoju.gui.commands.AutoRoutesHelpOpener
 import com.mojang.brigadier.Command
 import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
+import com.peachsoju.handlers.SneakHandler
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback
 import net.minecraft.network.chat.Component
@@ -77,6 +78,13 @@ object AutoRoutesCommand {
                     .then(ClientCommandManager.literal("reload").executes { ctx ->
                         NodeManager.reloadFromDisk()
                         ctx.source.sendFeedback(Component.literal("§aReloaded waypoints from disk"))
+                        Command.SINGLE_SUCCESS
+                    })
+                    .then(ClientCommandManager.literal("reset").executes { ctx ->
+                        NodeManager.reloadFromDisk()
+                        RouteState.routeActive = false
+                        RouteState.unlock()
+                        ctx.source.sendFeedback(Component.literal("§aReloaded waypoints and reset route state"))
                         Command.SINGLE_SUCCESS
                     })
                     .then(ClientCommandManager.literal("burst").executes { ctx ->

@@ -299,7 +299,7 @@ object BurstMode {
         executingBurst = false
     }
 
-    private fun predictEtherwarpLanding(node: WaypointNode, nodeWorldPos: Vec3, room: Room?): BlockPos? {
+    fun predictEtherwarpLanding(node: WaypointNode, nodeWorldPos: Vec3, room: Room?): BlockPos? {
         RouteUtils.extraDebug("§7[Burst] node.x=${node.x}, node.z=${node.z}")
         RouteUtils.extraDebug("§7[Burst] nodeWorldPos.x=${nodeWorldPos.x}, nodeWorldPos.z=${nodeWorldPos.z}")
 
@@ -314,6 +314,10 @@ object BurstMode {
         RouteUtils.extraDebug("§7[Burst] Look vector: (${formatCoord(lookVec.x)}, ${formatCoord(lookVec.y)}, ${formatCoord(lookVec.z)})")
 
         return getEtherPos(startPos, startPos.add(lookVec.scale(etherwarpDistance))).pos
+    }
+
+    fun findNodeAtLandingPosition(targetWorldPos: BlockPos, allNodes: List<WaypointNode>, room: Room?, excludeIndices: Set<Int>): WaypointNode? {
+        return findNodeAtPosition(targetWorldPos, allNodes, room, excludeIndices)?.first
     }
 
     fun getEtherPos(start: Vec3, end: Vec3): EtherPos {
