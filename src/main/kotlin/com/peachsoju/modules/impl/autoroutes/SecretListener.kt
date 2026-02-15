@@ -15,7 +15,7 @@ object SecretListener {
 
     private var currentAwaitType: String = "any"
     private val recentItemPickups = mutableListOf<Pair<Long, String>>()
-    private const val ITEM_BUFFER_MS = 150L
+    private const val ITEM_BUFFER_MS = 250L
     private val recentClicks = mutableMapOf<BlockPos, Long>()
     private const val CLICK_COOLDOWN_MS = 500L
     private const val WITHER_ESSENCE_UUID = "e0f3e929-869e-3dca-9504-54c666ee6f23"
