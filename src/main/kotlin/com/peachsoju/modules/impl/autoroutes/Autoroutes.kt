@@ -95,35 +95,14 @@ object Autoroutes {
             }
         }
 
-        if (RouteState.awaitingSecrets > 0 || RouteState.awaitingSecretConfirmation || BatListener.isAwaitingBat()) {
+        if (RouteState.awaitingSecrets > 0 || RouteState.awaitingSecretConfirmation) {
             val leftClickDown = mc.options.keyAttack.isDown
             if (leftClickDown && !leftClickWasDown) {
                 val hit = mc.hitResult
-                if (hit == null || hit.type == HitResult.Type.MISS) {
-                    if (BatListener.isAwaitingBat()) {
-                        BatListener.manualTrigger()
-                    } else {
-                        SecretListener.manualTrigger()
-                    }
-                }
+                if (hit == null || hit.type == HitResult.Type.MISS) SecretListener.manualTrigger()
             }
             leftClickWasDown = leftClickDown
         } else leftClickWasDown = mc.options.keyAttack.isDown
-
-        if (BatListener.isAwaitingBat()) {
-            val awaitIndex = BatListener.getAwaitingNodeIndex()
-            val awaitNode = BatListener.getAwaitingNode()
-
-            if (awaitNode != null) {
-                val nodeWorldPos = RouteUtils.getNodeWorldPosition(awaitNode, room)
-                val currentPos = player.position()
-
-                if (!intersectsNode(currentPos, nodeWorldPos, awaitNode.radius, awaitNode.height)) {
-                    RouteUtils.debug("§c[Bat] Player left bat await node #$awaitIndex - cancelling")
-                    BatListener.cancel()
-                }
-            }
-        }
 
         if (!RouteState.routeActive && !config.configMode()) checkStartNodeEtherwarp(room)
 

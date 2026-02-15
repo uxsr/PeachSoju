@@ -15,8 +15,6 @@ object BatListener {
     private var awaitingNode: WaypointNode? = null
     private var awaitingRoom: Room? = null
 
-    fun isAwaitingBat(): Boolean = isAwaitingBat
-
     fun startWaitingForBat(
         node: WaypointNode,
         index: Int,
@@ -34,15 +32,6 @@ object BatListener {
         awaitingNodeIndex = -1
         awaitingNode = null
         awaitingRoom = null
-    }
-
-    fun manualTrigger() {
-        if (!isAwaitingBat) {
-            RouteUtils.debug("§c[Bat] Manual trigger ignored - not awaiting")
-            return
-        }
-        RouteUtils.debug("§e[Bat] Manual trigger!")
-        onBatSpawned()
     }
 
     @SubscribeEvent
@@ -76,7 +65,4 @@ object BatListener {
 
         cancel()
     }
-
-    fun getAwaitingNodeIndex(): Int = awaitingNodeIndex
-    fun getAwaitingNode(): WaypointNode? = awaitingNode
 }

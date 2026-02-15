@@ -18,7 +18,7 @@ object FMBlocksEditMode {
 
     val enabled: Boolean get() = config.fmBlocksEditMode()
 
-    var currentBlockState: BlockState = Blocks.STONE.defaultBlockState()
+    var currentBlockState: BlockState = Blocks.WHITE_STAINED_GLASS.defaultBlockState()
         private set
 
     private var wasLeftClickDown = false
