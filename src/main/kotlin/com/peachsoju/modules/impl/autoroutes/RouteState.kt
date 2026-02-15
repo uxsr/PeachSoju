@@ -2,10 +2,13 @@ package com.peachsoju.modules.impl.autoroutes
 
 import com.peachsoju.modules.impl.autoroutes.data.WaypointNode
 import com.odtheking.odin.utils.skyblock.dungeon.tiles.Room
+import com.peachsoju.modules.impl.autoroutes.data.WPType
 import net.minecraft.world.phys.Vec3
 
 object RouteState {
 
+    private const val ACTION_LOCK_TIMEOUT_TELEPORT_MS = 50L
+    private const val ACTION_LOCK_TIMEOUT_DEFAULT_MS = 2000L
     private const val actionLockTimeoutMs = 2000L
     const val ACTION_LOCK_TIMEOUT_MS = actionLockTimeoutMs
     var consumed = 0
@@ -58,6 +61,13 @@ object RouteState {
         currentRoom = null
         nodeList = emptyList()
         previousPosition = Vec3.ZERO
+    }
+
+    fun getActionLockTimeout(type: WPType): Long {
+        return when (type) {
+            WPType.ETHER, WPType.AOTV -> ACTION_LOCK_TIMEOUT_TELEPORT_MS
+            else -> ACTION_LOCK_TIMEOUT_DEFAULT_MS
+        }
     }
 
     fun isLocked() = consumed > 0 || waitingForTeleport || awaitingSecretConfirmation

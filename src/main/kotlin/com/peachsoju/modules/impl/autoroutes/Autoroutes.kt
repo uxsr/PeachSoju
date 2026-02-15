@@ -95,14 +95,35 @@ object Autoroutes {
             }
         }
 
-        if (RouteState.awaitingSecrets > 0 || RouteState.awaitingSecretConfirmation) {
+        if (RouteState.awaitingSecrets > 0 || RouteState.awaitingSecretConfirmation || BatListener.isAwaitingBat()) {
             val leftClickDown = mc.options.keyAttack.isDown
             if (leftClickDown && !leftClickWasDown) {
                 val hit = mc.hitResult
-                if (hit == null || hit.type == HitResult.Type.MISS) SecretListener.manualTrigger()
+                if (hit == null || hit.type == HitResult.Type.MISS) {
+                    if (BatListener.isAwaitingBat()) {
+                        BatListener.manualTrigger()
+                    } else {
+                        SecretListener.manualTrigger()
+                    }
+                }
             }
             leftClickWasDown = leftClickDown
         } else leftClickWasDown = mc.options.keyAttack.isDown
+
+        if (BatListener.isAwaitingBat()) {
+            val awaitIndex = BatListener.getAwaitingNodeIndex()
+            val awaitNode = BatListener.getAwaitingNode()
+
+            if (awaitNode != null) {
+                val nodeWorldPos = RouteUtils.getNodeWorldPosition(awaitNode, room)
+                val currentPos = player.position()
+
+                if (!intersectsNode(currentPos, nodeWorldPos, awaitNode.radius, awaitNode.height)) {
+                    RouteUtils.debug("§c[Bat] Player left bat await node #$awaitIndex - cancelling")
+                    BatListener.cancel()
+                }
+            }
+        }
 
         if (!RouteState.routeActive && !config.configMode()) checkStartNodeEtherwarp(room)
 
@@ -202,7 +223,8 @@ object Autoroutes {
 
             if (nodeIndex in RouteState.actionLockedNodes) {
                 val lockTime = RouteState.actionLockTimes[nodeIndex] ?: 0L
-                if (now - lockTime < 150L) continue
+                val timeout = RouteState.getActionLockTimeout(node.type)
+                if (now - lockTime < timeout) continue
                 RouteState.actionLockedNodes.remove(nodeIndex)
                 RouteState.actionLockTimes.remove(nodeIndex)
             }
@@ -235,7 +257,8 @@ object Autoroutes {
         for ((index, node) in RouteState.nodeList.withIndex()) {
             if (index in RouteState.actionLockedNodes) {
                 val lockTime = RouteState.actionLockTimes[index] ?: 0L
-                if (now - lockTime < RouteState.ACTION_LOCK_TIMEOUT_MS) continue
+                val timeout = RouteState.getActionLockTimeout(node.type)
+                if (now - lockTime < timeout) continue
                 RouteState.actionLockedNodes.remove(index)
                 RouteState.actionLockTimes.remove(index)
             }
