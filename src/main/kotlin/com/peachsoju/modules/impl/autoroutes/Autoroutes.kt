@@ -374,7 +374,7 @@ object Autoroutes {
         when (node.type) {
             WPType.ETHER -> executeEther(realYaw, pitch, index, room)
             WPType.AOTV -> executeAotv(realYaw, pitch)
-            WPType.HYPE -> executeHype(realYaw, pitch)
+            WPType.HYPE -> executeHype(realYaw, pitch, index, room)
             WPType.SUPERBOOM -> executeSuperboom(node, room, realYaw, pitch)
             WPType.USEITEM -> executeUseItem(node, realYaw, pitch)
             WPType.LOOK -> executeLook(realYaw, pitch)
@@ -431,10 +431,35 @@ object Autoroutes {
         if (!RouteState.waitingForTeleport) RouteState.unlock()
     }
 
-    private fun executeHype(yaw: Float, pitch: Float) {
-        val result = RouteUtils.swapToItem("Hyperion").let { first -> if (first != SwapResult.FAIL) first else RouteUtils.swapToItem("Spirit Sceptre") }
-        if (result == SwapResult.FAIL) { RouteUtils.debug("§c  Failed to swap to Hyperion or Spirit Scepter"); RouteState.unlock(); RouteState.waitingForTeleport = false; return }
+    private fun executeHype(yaw: Float, pitch: Float, nodeIndex: Int, room: Room?) {
+        val nextNode = RouteState.nodeList.getOrNull(nodeIndex + 1)
+        val shouldReleaseSneak = nextNode?.type == WPType.AOTV
+
+        if (SneakHandler.isSneaking()) {
+            doHypeClick(yaw, pitch, shouldReleaseSneak)
+        } else {
+            SneakHandler.setSneak(true) { doHypeClick(yaw, pitch, shouldReleaseSneak) }
+        }
+    }
+
+    private fun doHypeClick(yaw: Float, pitch: Float, releaseSneak: Boolean = false) {
+        val result = RouteUtils.swapToItem("Hyperion").let { first ->
+            if (first != SwapResult.FAIL) first else RouteUtils.swapToItem("Spirit Sceptre")
+        }
+        if (result == SwapResult.FAIL) {
+            RouteUtils.debug("§c  Failed to swap to Hyperion or Spirit Scepter")
+            SneakHandler.releaseSneak()
+            RouteState.unlock()
+            RouteState.waitingForTeleport = false
+            return
+        }
         RightClickHandler.doPacketInteract(InteractionHand.MAIN_HAND, yaw, pitch)
+
+        if (releaseSneak) {
+            RouteUtils.debug("§e[Hype] Releasing sneak for AOTV landing")
+            SneakHandler.releaseSneak()
+        }
+
         if (!RouteState.waitingForTeleport) RouteState.unlock()
     }
 
