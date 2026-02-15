@@ -432,7 +432,6 @@ object Autoroutes {
     }
 
     private fun executeHype(yaw: Float, pitch: Float) {
-        SneakHandler.releaseSneak()
         val result = RouteUtils.swapToItem("Hyperion").let { first -> if (first != SwapResult.FAIL) first else RouteUtils.swapToItem("Spirit Sceptre") }
         if (result == SwapResult.FAIL) { RouteUtils.debug("§c  Failed to swap to Hyperion or Spirit Scepter"); RouteState.unlock(); RouteState.waitingForTeleport = false; return }
         RightClickHandler.doPacketInteract(InteractionHand.MAIN_HAND, yaw, pitch)
@@ -452,7 +451,6 @@ object Autoroutes {
     }
 
     private fun executeUseItem(node: WaypointNode, yaw: Float, pitch: Float) {
-        SneakHandler.releaseSneak()
         val itemName = node.itemName ?: run { RouteUtils.debug("§c  UseItem has no item name"); RouteState.unlock(); return }
         if (RouteUtils.swapToItem(itemName) == SwapResult.FAIL) { RouteUtils.debug("§c  Failed to swap to $itemName"); RouteState.unlock(); return }
         RightClickHandler.doPacketInteract(InteractionHand.MAIN_HAND, yaw, pitch)

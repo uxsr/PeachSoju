@@ -26,11 +26,13 @@ import com.peachsoju.utils.RouteUtils.debug
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.odtheking.odin.utils.Color
+import com.odtheking.odin.utils.Vec2
 import com.odtheking.odin.utils.getBlockBounds
 import com.odtheking.odin.utils.skyblock.LocationUtils
 import com.odtheking.odin.utils.skyblock.dungeon.DungeonUtils
 import com.odtheking.odin.utils.skyblock.dungeon.DungeonUtils.getRealCoords
 import com.odtheking.odin.utils.skyblock.dungeon.DungeonUtils.getRelativeCoords
+import com.odtheking.odin.utils.skyblock.dungeon.ScanUtils
 import com.odtheking.odin.utils.skyblock.dungeon.tiles.Room
 import com.odtheking.odin.utils.skyblock.dungeon.tiles.Rotations
 import net.minecraft.client.player.LocalPlayer
@@ -63,6 +65,12 @@ object  NodeManager {
     private var lastRemovedNode: WaypointNode? = null
     private var lastRemovedIndex = -1
     private var lastRemovedRoom: String? = null
+
+    private val scannedRooms = mutableMapOf<String, Room>()
+    private var lastScanTick = 0
+    private const val SCAN_INTERVAL = 20
+    private const val ROOM_SIZE = 32
+    private const val START = -185
 
     private val waypoints = mutableMapOf<String, MutableList<WaypointNode>>()
 
@@ -316,68 +324,147 @@ object  NodeManager {
         return "§7[AR] Updated rotation of node #$index to yaw=${"%.1f".format(yaw)}, pitch=${"%.1f".format(pitch)}"
     }
 
-    @SubscribeEvent fun onTick(event: TickEvent.Start) {}
-    @SubscribeEvent fun onWorldLoad(event: WorldEvent) { simulating = null }
+    private fun scanAdjacentRooms() {
+        if (!DungeonUtils.inDungeons) return
+        val level = mc.level ?: return
+
+        for (room in DungeonUtils.passedRooms) {
+            val name = room.data.name
+            if (name !in scannedRooms) {
+                scannedRooms[name] = room
+            }
+        }
+
+        val roomsWithWaypoints = waypoints.keys
+
+        for (gridX in 0..5) {
+            for (gridZ in 0..5) {
+                val roomX = START + gridX * ROOM_SIZE
+                val roomZ = START + gridZ * ROOM_SIZE
+
+                if (!level.hasChunkAt(BlockPos(roomX, 70, roomZ))) continue
+
+                try {
+                    val room = ScanUtils.scanRoom(Vec2(roomX, roomZ)) ?: continue
+                    val roomName = room.data.name
+
+                    if (roomName in roomsWithWaypoints && roomName !in scannedRooms) {
+                        scannedRooms[roomName] = room
+                        RouteUtils.debug("§a[Scan] Found room: $roomName at grid ($gridX, $gridZ)")
+                    }
+                } catch (_: Exception) { }
+            }
+        }
+    }
+
+    @SubscribeEvent
+    fun onTick(event: TickEvent.Start) {
+        if (!DungeonUtils.inDungeons) return
+
+        lastScanTick++
+        if (lastScanTick >= SCAN_INTERVAL) {
+            lastScanTick = 0
+            scanAdjacentRooms()
+        }
+    }
+
+    @SubscribeEvent
+    fun onWorldLoad(event: WorldEvent) {
+        simulating = null
+        scannedRooms.clear()
+        lastScanTick = 0
+        cachedLineSegments = null
+        lastNodeListHash = 0
+        lastRoomKey = null
+    }
 
     @SubscribeEvent
     fun onRenderWorld(event: RenderEvent.Extract) {
         if (!enabled) return
 
+        val player = mc.player ?: return
+        val playerPos = player.position()
         val room = DungeonUtils.currentRoom
-        val key = getCurrentKey(room) ?: return
-        val list = waypoints[key] ?: return
-        if (list.isEmpty()) return
+        val currentKey = getCurrentKey(room)
 
-        if (showLines && list.size > 1) {
-            val currentHash = list.hashCode()
-            if (cachedLineSegments == null || currentHash != lastNodeListHash || key != lastRoomKey) {
-                rebuildLineCache(list, room)
-                lastNodeListHash = currentHash
-                lastRoomKey = key
-            }
-            lineAnimationOffset += animationSpeed
-            val period = dashLength + gapLength
-            if (lineAnimationOffset > period) lineAnimationOffset -= period
-            val segments = cachedLineSegments
-            val color = Color(85, 255, 255, 1f)
-            if (segments != null && color != null) {
-                for (i in segments.indices) {
-                    val (fromApex, toApex) = segments[i]
-                    event.drawAnimatedDashedLine(
-                        from = fromApex, to = toApex, color = color,
-                        depth = false, thickness = 2f,
-                        dashLength = dashLength, gapLength = gapLength, animationOffset = lineAnimationOffset
-                    )
+        if (currentKey != null) {
+            val list = waypoints[currentKey]
+            if (list != null && list.isNotEmpty()) {
+                if (showLines && list.size > 1) {
+                    val currentHash = list.hashCode()
+                    if (cachedLineSegments == null || currentHash != lastNodeListHash || currentKey != lastRoomKey) {
+                        rebuildLineCache(list, room)
+                        lastNodeListHash = currentHash
+                        lastRoomKey = currentKey
+                    }
+                    lineAnimationOffset += animationSpeed
+                    val period = dashLength + gapLength
+                    if (lineAnimationOffset > period) lineAnimationOffset -= period
+                    val segments = cachedLineSegments
+                    val color = Color(85, 255, 255, 1f)
+                    if (segments != null) {
+                        for (i in segments.indices) {
+                            val (fromApex, toApex) = segments[i]
+                            event.drawAnimatedDashedLine(
+                                from = fromApex, to = toApex, color = color,
+                                depth = false, thickness = 2f,
+                                dashLength = dashLength, gapLength = gapLength, animationOffset = lineAnimationOffset
+                            )
+                        }
+                    }
+                }
+
+                for (node in list) {
+                    if (renderOnlyStartNodes && !node.start) continue
+                    renderNode(event, node, room)
                 }
             }
         }
 
-        for (node in list) {
-            if (renderOnlyStartNodes && !node.start) continue
+        if (DungeonUtils.inDungeons) {
+            for ((roomName, scannedRoom) in scannedRooms) {
+                if (roomName == currentKey) continue
 
-            val blockPosRel = BlockPos(floor(node.x).toInt(), node.y.toInt(), floor(node.z).toInt())
-            val blockPosWorld = if (DungeonUtils.inDungeons) getCoordsOfBlock(blockPosRel, room) else blockPosRel
+                val list = waypoints[roomName] ?: continue
 
-            val aabb = AABB(blockPosWorld)
-            val box = aabb.inflate(0.01)
+                for (node in list) {
+                    if (!node.start) continue
 
-            if (node.start) {
-                event.drawFilledBox(box, Color(255, 140, 80, 1.0f), depth = false)
-                continue
+                    val blockPosRel = BlockPos(floor(node.x).toInt(), node.y.toInt(), floor(node.z).toInt())
+                    val blockPosWorld = getCoordsOfBlock(blockPosRel, scannedRoom)
+                    val nodeWorldPos = Vec3(blockPosWorld.x + 0.5, blockPosWorld.y.toDouble(), blockPosWorld.z + 0.5)
+
+                    if (playerPos.distanceTo(nodeWorldPos) <= 100.0) {
+                        renderNode(event, node, scannedRoom)
+                    }
+                }
             }
+        }
+    }
 
-            val style = NodeAppearanceSettings.getStyle(node.type)
-            val color = colorFor(node)
-            when (style) {
-                RenderStyle.PULSE_PYRAMID -> event.drawPulseInfillInvertedPyramid(box, color)
-                RenderStyle.WIREFRAME -> event.drawWireFrameBox(box, color, depth = false)
-                RenderStyle.FILLED -> event.drawFilledBox(box, color, depth = false)
-                RenderStyle.CORNER_BOX -> event.drawCornerBox(box, color, depth = false)
-                RenderStyle.DASHED -> event.drawDashedWireBox(box, color, depth = false)
-                RenderStyle.DIAMOND -> event.drawDiamond(box, color, style = 1, depth = false)
-                RenderStyle.PULSE_BOX -> event.drawPulseBox(box, color, depth = false)
-                RenderStyle.X_BOX -> event.drawXBox(box, color, depth = false)
-            }
+    private fun renderNode(event: RenderEvent.Extract, node: WaypointNode, room: Room?) {
+        val blockPosRel = BlockPos(floor(node.x).toInt(), node.y.toInt(), floor(node.z).toInt())
+        val blockPosWorld = if (DungeonUtils.inDungeons && room != null) getCoordsOfBlock(blockPosRel, room) else blockPosRel
+
+        val aabb = AABB(blockPosWorld)
+        val box = aabb.inflate(0.01)
+
+        if (node.start) {
+            event.drawFilledBox(box, Color(255, 140, 80, 1.0f), depth = false)
+            return
+        }
+
+        val style = NodeAppearanceSettings.getStyle(node.type)
+        val color = colorFor(node)
+        when (style) {
+            RenderStyle.PULSE_PYRAMID -> event.drawPulseInfillInvertedPyramid(box, color)
+            RenderStyle.WIREFRAME -> event.drawWireFrameBox(box, color, depth = false)
+            RenderStyle.FILLED -> event.drawFilledBox(box, color, depth = false)
+            RenderStyle.CORNER_BOX -> event.drawCornerBox(box, color, depth = false)
+            RenderStyle.DASHED -> event.drawDashedWireBox(box, color, depth = false)
+            RenderStyle.DIAMOND -> event.drawDiamond(box, color, style = 1, depth = false)
+            RenderStyle.PULSE_BOX -> event.drawPulseBox(box, color, depth = false)
+            RenderStyle.X_BOX -> event.drawXBox(box, color, depth = false)
         }
     }
 
