@@ -47,7 +47,7 @@ object AutoSS {
     private var startupPhase: Int = 0
     private var startupClickTime: Long = 0L
 
-    private val PINK = Color(255, 105, 180, 0.7f)
+    private val PEACH = Color(212, 149, 106, 0.7f)
 
     fun reset() {
         allButtons.clear()
@@ -57,7 +57,7 @@ object AutoSS {
         doingSS = false
         clicked = false
         startupPhase = 0
-        debug("Reset!")
+        extraDebug("Reset!")
     }
 
     fun onKeyBind() {
@@ -74,7 +74,7 @@ object AutoSS {
         if (player.blockPosition().distSqr(startButton) > 25.0) return
 
         if (!clicked) {
-            debug("Starting SS")
+            extraDebug("Starting SS")
             reset()
             clicked = true
             startupPhase = 1
@@ -107,7 +107,7 @@ object AutoSS {
                 reset()
                 startupPhase = 2
                 startupClickTime = now
-                debug("Startup click 1")
+                extraDebug("Startup click 1")
             }
             2 -> {
                 if (timeSinceLastClick >= autoStartDelay) {
@@ -115,7 +115,7 @@ object AutoSS {
                     reset()
                     startupPhase = 3
                     startupClickTime = now
-                    debug("Startup click 2")
+                    extraDebug("Startup click 2")
                 }
             }
             3 -> {
@@ -123,7 +123,7 @@ object AutoSS {
                     clickButton(startButton.x, startButton.y, startButton.z)
                     doingSS = true
                     startupPhase = 0
-                    debug("Startup click 3 - SS active!")
+                    extraDebug("Startup click 3 - SS active!")
                 }
             }
         }
@@ -167,7 +167,7 @@ object AutoSS {
             if (!doneFirst && clicks.size == 3) {
                 clicks.removeAt(0)
                 allButtons.removeAt(0)
-                debug("Removed first click (had 3), now have ${clicks.size}")
+                extraDebug("Removed first click (had 3), now have ${clicks.size}")
             }
 
             doneFirst = true
@@ -178,7 +178,7 @@ object AutoSS {
                 if (level.getBlockState(nextButton).block == Blocks.STONE_BUTTON) {
                     clickButton(nextButton.x, nextButton.y, nextButton.z)
                     progress++
-                    debug("Clicked button #$progress")
+                    extraDebug("Clicked button #$progress")
                 }
             }
         }
@@ -193,7 +193,7 @@ object AutoSS {
         if (player.blockPosition().distSqr(startButton) > 25.0) return
 
         if (msg.contains("Who dares trespass into my domain", ignoreCase = true)) {
-            debug("Detected trespass message - Starting SS")
+            extraDebug("Detected trespass message - Starting SS")
             start()
         }
     }
@@ -216,7 +216,7 @@ object AutoSS {
                     btn.x + 0.875, btn.y + 0.375, btn.z + 0.3125,
                     btn.x + 0.875 + 0.125, btn.y + 0.375 + 0.25, btn.z + 0.3125 + 0.375
                 )
-                event.drawFilledBox(box, PINK, depth = false)
+                event.drawFilledBox(box, PEACH, depth = false)
             }
 
             allButtons.forEachIndexed { index, location ->
@@ -225,7 +225,7 @@ object AutoSS {
                     location.y + 0.5625,
                     location.z + 0.5
                 )
-                event.drawText((index + 1).toString(), textPos, 0.02f, depth = false)
+                event.drawText((index + 1).toString(), textPos, 0.6f, depth = false)
             }
         }
     }
@@ -261,17 +261,17 @@ object AutoSS {
             val button = BlockPos(110, pos.y, pos.z)
 
             if (block == Blocks.SEA_LANTERN) {
-                debug("Sea lantern detected at $pos")
+                extraDebug("Sea lantern detected at $pos")
 
                 if (clicks.size == 2 && clicks[0] == button && !doneFirst) {
                     doneFirst = true
                     clicks.removeFirstOrNull()
                     allButtons.removeFirstOrNull()
-                    debug("Removed duplicate first click")
+                    extraDebug("Removed duplicate first click")
                 }
 
                 if (!clicks.contains(button)) {
-                    debug("Added button: $button (total: ${clicks.size + 1})")
+                    extraDebug("Added button: $button (total: ${clicks.size + 1})")
                     progress = 0
                     clicks.add(button)
                     allButtons.add(Vec3(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()))
@@ -285,7 +285,7 @@ object AutoSS {
 
         if (player.blockPosition().distSqr(BlockPos(x, y, z)) > 25.0) return
 
-        debug("Clicking button at: ($x, $y, $z)")
+        extraDebug("Clicking button at: ($x, $y, $z)")
         clickedButton = Vec3(x.toDouble(), y.toDouble(), z.toDouble())
         lastClickTime = System.currentTimeMillis()
 
@@ -301,8 +301,8 @@ object AutoSS {
         RightClickHandler.doBlockInteract(blockHitResult, InteractionHand.MAIN_HAND)
     }
 
-    private fun debug(msg: String) {
-        if (config.debug()) {
+    private fun extraDebug(msg: String) {
+        if (config.extraDebug()) {
             mc.player?.displayClientMessage(
                 Component.literal("§7[AutoSS] $msg"),
                 false
