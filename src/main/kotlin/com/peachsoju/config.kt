@@ -31,7 +31,9 @@ object config {
         var nodeAppearances: MutableMap<String, NodeAppearance> = mutableMapOf(),
         var renderOnlyStartNodes: Boolean = false,
         var fmBlocksEnabled: Boolean = false,
-        var fmBlocksEditMode: Boolean = false
+        var fmBlocksEditMode: Boolean = false,
+        var burstModeAotv: Boolean = false,
+        var fmBlocksSelectedBlock: String = "minecraft:white_stained_glass"
     )
 
     @Volatile private var data = Data()
@@ -112,6 +114,11 @@ object config {
     fun fmBlocksEditMode() = data.fmBlocksEditMode
     fun setFmBlocksEditMode(v: Boolean) { data.fmBlocksEditMode = v; save() }
     fun toggleFmBlocksEditMode() = (!data.fmBlocksEditMode).also { data.fmBlocksEditMode = it; save() }
+    fun burstModeAotv() = data.burstModeAotv
+    fun setBurstModeAotv(v: Boolean) { data.burstModeAotv = v; save() }
+    fun toggleBurstModeAotv() = (!data.burstModeAotv).also { data.burstModeAotv = it; save() }
+    fun fmBlocksSelectedBlock() = data.fmBlocksSelectedBlock
+    fun setFmBlocksSelectedBlock(blockId: String) { data.fmBlocksSelectedBlock = blockId; save() }
 
     fun setNodeColor(type: WPType, r: Int, g: Int, b: Int, a: Float) {
         val appearance = data.nodeAppearances.getOrPut(type.name) { NodeAppearance() }

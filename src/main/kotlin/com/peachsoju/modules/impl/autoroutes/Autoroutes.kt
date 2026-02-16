@@ -49,6 +49,7 @@ object Autoroutes {
             RouteState.awaitingSecretConfirmation = false
             RouteState.secretConfirmationTicks = 0
             RouteState.delayTicksRemaining = 0
+            RouteState.delayTicksRemaining = 0
             RouteState.nodeCooldowns.clear()
             RouteState.previousPosition = player.position()
             SneakHandler.releaseSneak()
@@ -387,16 +388,26 @@ object Autoroutes {
         if (BurstMode.shouldBurst(node)) {
             val chain = BurstMode.findBurstChain(node, index, RouteState.nodeList, room)
             if (chain.nodes.size > 1) {
-                RouteUtils.debug("§6[Burst] Executing ${chain.nodes.size}-node chain from #$index")
+                RouteUtils.debug("§6[Burst] Executing ${chain.nodes.size}-node ETHER chain from #$index")
                 BurstMode.executeBurstChain(chain, room)
                 return
             }
-            RouteUtils.debug("§7[Burst] Single node, using normal execution")
+            RouteUtils.debug("§7[Burst] Single ETHER node, using normal execution")
+        }
+
+        if (BurstMode.shouldAotvBurst(node)) {
+            val chain = BurstMode.findAotvBurstChain(node, index, RouteState.nodeList)
+            if (chain.nodes.size > 1) {
+                RouteUtils.debug("§6[AOTV Burst] Executing ${chain.nodes.size}-node AOTV chain from #$index")
+                BurstMode.executeAotvBurstChain(chain, room)
+                return
+            }
+            RouteUtils.debug("§7[AOTV Burst] Single AOTV node, using normal execution")
         }
 
         when (node.type) {
             WPType.ETHER -> executeEther(realYaw, pitch, index, room)
-            WPType.AOTV -> executeAotv(realYaw, pitch)
+            WPType.AOTV -> executeAotv(realYaw, pitch, node.mult)
             WPType.HYPE -> executeHype(realYaw, pitch, index, room)
             WPType.SUPERBOOM -> executeSuperboom(node, room, realYaw, pitch)
             WPType.USEITEM -> executeUseItem(node, realYaw, pitch)
@@ -441,14 +452,22 @@ object Autoroutes {
         if (!RouteState.waitingForTeleport) RouteState.unlock()
     }
 
-    private fun executeAotv(yaw: Float, pitch: Float) {
+    private fun executeAotv(yaw: Float, pitch: Float, mult: Int = 1) {
         val player = mc.player ?: run { RouteState.unlock(); return }
         RouteUtils.debug("§b[AOTV] Before - playerYaw=${player.yRot}, playerPitch=${player.xRot}")
-        RouteUtils.debug("§b[AOTV] Packet will use yaw=$yaw, pitch=$pitch")
+        RouteUtils.debug("§b[AOTV] Packet will use yaw=$yaw, pitch=$pitch, mult=$mult")
 
         SneakHandler.releaseSneak()
-        if (RouteUtils.swapToItem("Aspect of the Void") == SwapResult.FAIL) { RouteUtils.debug("§c  Failed to swap to AOTV"); RouteState.unlock(); return }
-        RightClickHandler.doPacketInteract(InteractionHand.MAIN_HAND, yaw, pitch)
+        if (RouteUtils.swapToItem("Aspect of the Void") == SwapResult.FAIL) {
+            RouteUtils.debug("§c  Failed to swap to AOTV")
+            RouteState.unlock()
+            return
+        }
+
+        repeat(mult) { i ->
+            RouteUtils.debug("§b[AOTV] Sending click ${i + 1}/$mult")
+            RightClickHandler.doPacketInteract(InteractionHand.MAIN_HAND, yaw, pitch)
+        }
 
         RouteUtils.debug("§b[AOTV] After - playerYaw=${player.yRot}, playerPitch=${player.xRot}")
         if (!RouteState.waitingForTeleport) RouteState.unlock()

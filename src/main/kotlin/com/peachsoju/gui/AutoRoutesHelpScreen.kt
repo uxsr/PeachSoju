@@ -15,14 +15,15 @@ class AutoRoutesHelpScreen(private val parent: Screen? = null) : Screen(Componen
         private const val PEACH_LIGHT = 0xFFFFDAB9.toInt()
         private const val PEACH_CREAM = 0xFFFFF5E6.toInt()
         private const val TEXT_DARK = 0xFF000000.toInt()
+        private const val TEXT_HEADER = 0xFF6B3D2E.toInt()
 
-        private const val GUI_WIDTH = 330
-        private const val GUI_HEIGHT = 260
+        private const val GUI_WIDTH = 340
+        private const val GUI_HEIGHT = 280
         private const val PADDING = 10
         private const val HEADER_H = 30
         private const val FOOTER_H = 26
-        private const val LINE_H = 10
-        private const val SCROLL_STEP = 12
+        private const val LINE_H = 11
+        private const val SCROLL_STEP = 14
     }
 
     private var guiLeft = 0
@@ -31,71 +32,79 @@ class AutoRoutesHelpScreen(private val parent: Screen? = null) : Screen(Componen
     private var maxScroll = 0
 
     private val rawLines = listOf(
-        "AutoRoutes Commands",
+        "§0§l§n== BASIC CONTROLS ==",
         "",
-        "/ar - show status",
-        "/ar toggle - toggle autoroutes",
-        "/ar render - toggle waypoint rendering",
-        "/ar lines - toggle line rendering",
-        "/ar startsonly - toggle rendering only start nodes",
-        "/ar burst - toggle burst mode",
-        "/ar config - toggle config mode",
-        "/ar info - show autoroutes info",
-        "/ar clear - clear all waypoints in current room",
-        "/ar reload - reload waypoints from disk",
-        "/ar list - list waypoints in current room",
-        "/ar remove - remove closest waypoint in current room",
-        "/ar remove <index> - remove waypoint by index",
-        "/ar undo - undo last remove",
-        "/ar move <from> <to> - move waypoint index",
-        "/ar insert <index> <type> [modifiers...] - insert waypoint at index",
-        "/ar updatepos <index> - update waypoint position to your current position",
-        "/ar updaterot <index> - update waypoint rotation to your current rotation",
-        "/ar set <index> <modifier> [value] - set/toggle a modifier on a waypoint",
+        "§8/ar §0- Show status",
+        "§8/ar toggle §0- Enable/disable module",
+        "§8/ar config §0- Toggle config mode (trigger any node)",
+        "§8/ar reload §0- Reload waypoints from disk",
+        "§8/ar reset §0- Reload + reset route state",
         "",
-        "Add / Insert",
+        "§0§l§n== RENDER OPTIONS ==",
         "",
-        "/ar add <type> [modifiers...]",
-        "/ar insert <index> <type> [modifiers...]",
-        "types: ether, aotv, hype, superboom, await, useitem, nop",
+        "§8/ar render §0- Toggle waypoint rendering",
+        "§8/ar lines §0- Toggle burst chain lines",
+        "§8/ar startsonly §0- Only show start nodes",
+        "§8/ar burst §0- Toggle ETHER burst mode",
         "",
-        "Modifiers",
+        "§0§l§n== NODE TYPES ==",
         "",
-        "exact - store exact fractional x/z (kinda useless)",
-        "start - mark node as a start node",
-        "delay:<ticks> - wait N ticks before executing",
-        "radius:<r> - trigger radius (default 0.5)",
-        "height:<h> - trigger height (default 1.5)",
-        "item:<name> - useitem name",
+        "§3ether §0- Etherwarp (sneaking + AOTV)",
+        "§6aotv §0- Regular AOTV teleport",
+        "§5hype §0- Hyperion/Sceptre ability",
+        "§4superboom §0- Place superboom TNT",
+        "§2useitem §0- Use a specific item",
+        "§elook §0- Set rotation + end route",
+        "§8nop §0- No action (just a waypoint)",
         "",
-        "Await",
+        "§0§l§n== ADDING NODES ==",
         "",
-        "await:<n> - wait for N secrets (any type)",
-        "await:<n>:<type> - wait for N secrets of a specific type",
-        "awaitbat - wait for bat spawn",
-        "examples:",
-        "/ar add ether await:2",
-        "/ar add ether await:2:lever",
-        "/ar add aotv await:1:chest",
-        "/ar add ether awaitbat",
+        "§8/ar add <type> §0[modifiers...]",
+        "§8/ar insert <index> <type> §0[modifiers...]",
         "",
-        "Type Examples",
+        "§0Examples:",
+        "§8/ar add ether",
+        "§8/ar add ether start",
+        "§8/ar add aotv mult:3",
+        "§8/ar add useitem item:pearl",
+        "§8/ar add superboom §0(look at target block)",
         "",
-        "/ar add ether",
-        "/ar add ether chained exact stop center",
-        "/ar add aotv",
-        "/ar add hype",
-        "/ar add superboom (look at a block first)",
-        "/ar add useitem item:<itemname> (example: item:Inflatable_Jerry)",
-        "/ar add nop",
+        "§0§l§n== MODIFIERS ==",
         "",
-        "Debug",
+        "§6start §0- Mark as route start point",
+        "§6delay:<ticks> §0- Wait before executing",
+        "§6await:<n> §0- Wait for N secrets",
+        "§6await:<n>:<type> §0- Wait for N secrets (chest/item/lever)",
+        "§6awaitbat §0- Wait for bat spawn",
+        "§6mult:<n> §0- Send N clicks (AOTV only, 1-10)",
+        "§6item:<name> §0- Item name (USEITEM only)",
+        "§6radius:<r> §0- Trigger radius (default 0.5)",
+        "§6height:<h> §0- Trigger height (default 1.5)",
         "",
-        "/ar testether - test etherwarp landing prediction from your position",
-        "/ar testchain <index> - test burst chain from node index",
+        "§0§l§n== EDITING NODES ==",
+        "",
+        "§8/ar remove §0- Remove closest node",
+        "§8/ar remove <index> §0- Remove by index",
+        "§8/ar undo §0- Restore last removed",
+        "§8/ar move <from> <to> §0- Reorder node",
+        "§8/ar set <index> <mod> [val] §0- Change modifier",
+        "§8/ar updatepos <index> §0- Update position",
+        "§8/ar updaterot <index> §0- Update rotation",
+        "",
+        "§0Examples:",
+        "§8/ar set 0 start",
+        "§8/ar set 3 mult 2",
+        "§8/ar set 5 await 1",
+        "",
+        "§0§l§n== OTHER ==",
+        "",
+        "§8/ar list §0- List all nodes in room",
+        "§8/ar clear §0- Delete all nodes in room",
+        "§8/ar info §0- Show loaded rooms/nodes",
+        "§8/ar testether §0- Test etherwarp prediction",
+        "§8/ar testchain <index> §0- Test burst chain",
         ""
     )
-
 
     private val wrappedLines: List<String> by lazy {
         val maxTextW = GUI_WIDTH - (PADDING * 2) - 18
@@ -189,7 +198,7 @@ class AutoRoutesHelpScreen(private val parent: Screen? = null) : Screen(Componen
     private fun drawFooter(graphics: GuiGraphics) {
         val y = guiTop + GUI_HEIGHT - FOOTER_H
         graphics.fill(guiLeft + PADDING, y, guiLeft + GUI_WIDTH - PADDING, y + 1, PEACH_MEDIUM)
-        val footer = "§7 "
+        val footer = "§7Scroll for more • ESC to close"
         val w = font.width(footer)
         graphics.drawString(font, footer, guiLeft + (GUI_WIDTH - w) / 2, y + 8, TEXT_DARK, false)
     }

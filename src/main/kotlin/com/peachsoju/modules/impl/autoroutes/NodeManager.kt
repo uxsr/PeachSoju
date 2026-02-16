@@ -35,6 +35,7 @@ import com.odtheking.odin.utils.skyblock.dungeon.DungeonUtils.getRelativeCoords
 import com.odtheking.odin.utils.skyblock.dungeon.ScanUtils
 import com.odtheking.odin.utils.skyblock.dungeon.tiles.Room
 import com.odtheking.odin.utils.skyblock.dungeon.tiles.Rotations
+import com.peachsoju.handlers.drawText
 import net.minecraft.client.player.LocalPlayer
 import net.minecraft.core.BlockPos
 import net.minecraft.world.level.block.AirBlock
@@ -59,7 +60,7 @@ object  NodeManager {
     private var fullBlock = false
     private var loaded = false
     private var lineAnimationOffset = 0.0
-    private var cachedLineSegments: List<Pair<Vec3, Vec3>>? = null
+    private var cachedLineSegments: List<Triple<Vec3, Vec3, Color>>? = null
     private var lastNodeListHash = 0
     private var lastRoomKey: String? = null
     private var lastRemovedNode: WaypointNode? = null
@@ -230,6 +231,7 @@ object  NodeManager {
             "radius" -> node.copyWith(radius = value?.toDoubleOrNull() ?: 0.5)
             "height" -> node.copyWith(height = value?.toDoubleOrNull() ?: 1.5)
             "item" -> node.copyWith(itemName = value)
+            "mult" -> node.copyWith(mult = value?.toIntOrNull()?.coerceIn(1, 10) ?: 1)
             else -> return "§c[AR] Unknown modifier: $modifier"
         }
 
@@ -391,7 +393,7 @@ object  NodeManager {
             val list = waypoints[currentKey]
             if (list != null && list.isNotEmpty()) {
                 if (showLines && list.size > 1) {
-                    val currentHash = list.hashCode()
+                    val currentHash = list.hashCode() + config.burstModeAotv().hashCode()
                     if (cachedLineSegments == null || currentHash != lastNodeListHash || currentKey != lastRoomKey) {
                         rebuildLineCache(list, room)
                         lastNodeListHash = currentHash
@@ -401,10 +403,8 @@ object  NodeManager {
                     val period = dashLength + gapLength
                     if (lineAnimationOffset > period) lineAnimationOffset -= period
                     val segments = cachedLineSegments
-                    val color = Color(85, 255, 255, 1f)
                     if (segments != null) {
-                        for (i in segments.indices) {
-                            val (fromApex, toApex) = segments[i]
+                        for ((fromApex, toApex, color) in segments) {
                             event.drawAnimatedDashedLine(
                                 from = fromApex, to = toApex, color = color,
                                 depth = false, thickness = 2f,
@@ -466,6 +466,15 @@ object  NodeManager {
             RenderStyle.PULSE_BOX -> event.drawPulseBox(box, color, depth = false)
             RenderStyle.X_BOX -> event.drawXBox(box, color, depth = false)
         }
+
+        if (node.type == WPType.AOTV && node.mult > 1) {
+            val textPos = Vec3(
+                blockPosWorld.x + 0.5,
+                blockPosWorld.y + 1.2,
+                blockPosWorld.z + 0.5
+            )
+            event.drawText("§6${node.mult}", textPos, 0.9f, depth = false)
+        }
     }
 
     private fun saveWaypointsForRoom(roomKey: String, nodes: List<WaypointNode>) {
@@ -475,8 +484,7 @@ object  NodeManager {
     }
 
     private fun rebuildLineCache(list: List<WaypointNode>, room: Room?) {
-        val segments = mutableListOf<Pair<Vec3, Vec3>>()
-        val colors = mutableListOf<Color>()
+        val segments = mutableListOf<Triple<Vec3, Vec3, Color>>()
         val drawn = mutableSetOf<Pair<Int, Int>>()
 
         for ((index, node) in list.withIndex()) {
@@ -497,8 +505,36 @@ object  NodeManager {
                 val fromWorld = if (DungeonUtils.inDungeons) getCoordsOfBlock(fromBlockPos, room) else fromBlockPos
                 val toWorld = if (DungeonUtils.inDungeons) getCoordsOfBlock(toBlockPos, room) else toBlockPos
 
-                segments.add(Vec3(fromWorld.x + 0.5, fromWorld.y.toDouble(), fromWorld.z + 0.5) to Vec3(toWorld.x + 0.5, toWorld.y.toDouble(), toWorld.z + 0.5))
-                colors.add(colorFor(fromNode))
+                val lineColor = Color(85, 255, 255, 1f)
+                segments.add(Triple(
+                    Vec3(fromWorld.x + 0.5, fromWorld.y.toDouble(), fromWorld.z + 0.5),
+                    Vec3(toWorld.x + 0.5, toWorld.y.toDouble(), toWorld.z + 0.5),
+                    lineColor
+                ))
+            }
+        }
+
+        if (config.burstModeAotv()) {
+            for ((index, node) in list.withIndex()) {
+                if (node.type != WPType.AOTV) continue
+
+                val nextNode = list.getOrNull(index + 1) ?: continue
+                if (nextNode.type != WPType.ETHER && nextNode.type != WPType.AOTV) continue
+                if (nextNode.awaitSecret > 0 || nextNode.awaitBat || nextNode.delay > 0) continue
+
+                val connection = index to (index + 1)
+                if (!drawn.add(connection)) continue
+
+                val fromBlockPos = BlockPos(floor(node.x).toInt(), node.y.toInt(), floor(node.z).toInt())
+                val toBlockPos = BlockPos(floor(nextNode.x).toInt(), nextNode.y.toInt(), floor(nextNode.z).toInt())
+                val fromWorld = if (DungeonUtils.inDungeons) getCoordsOfBlock(fromBlockPos, room) else fromBlockPos
+                val toWorld = if (DungeonUtils.inDungeons) getCoordsOfBlock(toBlockPos, room) else toBlockPos
+                val lineColor = Color(255, 255, 255, 1f)
+                segments.add(Triple(
+                    Vec3(fromWorld.x + 0.5, fromWorld.y.toDouble(), fromWorld.z + 0.5),
+                    Vec3(toWorld.x + 0.5, toWorld.y.toDouble(), toWorld.z + 0.5),
+                    lineColor
+                ))
             }
         }
 
@@ -531,6 +567,7 @@ object  NodeManager {
                 part.startsWith("item:") -> modifiers["item"] = part.substringAfter("item:")
                 part.startsWith("radius:") -> modifiers["radius"] = part.substringAfter("radius:")
                 part.startsWith("height:") -> modifiers["height"] = part.substringAfter("height:")
+                part.startsWith("mult:") -> modifiers["mult"] = part.substringAfter("mult:")
             }
         }
 
@@ -570,7 +607,8 @@ object  NodeManager {
             awaitType = modifiers["awaitType"] ?: "any",
             toBlock = null,
             targetBlock = relTargetBlock,
-            itemName = modifiers["item"]
+            itemName = modifiers["item"],
+            mult = modifiers["mult"]?.toIntOrNull()?.coerceIn(1, 10) ?: 1
         )
     }
 
@@ -600,6 +638,7 @@ object  NodeManager {
         if (node.start) parts.add("start")
         if (node.delay > 0) parts.add("delay:${node.delay}")
         if (node.itemName != null) parts.add("item:${node.itemName}")
+        if (node.mult > 1) parts.add("mult:${node.mult}")
         return if (parts.isEmpty()) "" else " §8[${parts.joinToString(", ")}]"
     }
 
@@ -663,6 +702,7 @@ object  NodeManager {
                 obj.addProperty("awaitSecret", node.awaitSecret)
                 obj.addProperty("awaitBat", node.awaitBat)
                 obj.addProperty("awaitType", node.awaitType)
+                obj.addProperty("mult", node.mult)
 
                 node.toBlock?.let { tb ->
                     obj.add("toBlock", JsonObject().apply { addProperty("x", tb.x); addProperty("y", tb.y); addProperty("z", tb.z) })
@@ -720,7 +760,8 @@ object  NodeManager {
                         awaitType = str("awaitType") ?: "any",
                         toBlock = toBlock,
                         targetBlock = targetBlock,
-                        itemName = str("itemName")
+                        itemName = str("itemName"),
+                        mult = obj.get("mult")?.asInt ?: 1
                     )
                 )
             }

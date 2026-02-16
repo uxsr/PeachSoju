@@ -21,6 +21,7 @@ object FMBlocksEditMode {
     var currentBlockState: BlockState = Blocks.WHITE_STAINED_GLASS.defaultBlockState()
         private set
 
+    private var initialized = false
     private var wasLeftClickDown = false
     private var wasMiddleClickDown = false
     private var wasRightClickDown = false
@@ -28,8 +29,27 @@ object FMBlocksEditMode {
     private var lastActionTime = 0L
     private const val actionCooldownMs = 200L
 
+    fun initialize() {
+        if (initialized) return
+        initialized = true
+
+        // Load cached block from config
+        val blockId = config.fmBlocksSelectedBlock()
+        val resourceLocation = net.minecraft.resources.ResourceLocation.tryParse(blockId)
+        if (resourceLocation != null) {
+            val block = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getValue(resourceLocation)
+            if (block != Blocks.AIR || blockId == "minecraft:air") {
+                currentBlockState = block.defaultBlockState()
+            }
+        }
+    }
+
     fun setCurrentBlock(state: BlockState) {
         currentBlockState = state
+
+        val blockId = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(state.block).toString()
+        config.setFmBlocksSelectedBlock(blockId)
+
         RouteUtils.debug("§a[FMBlocks] Selected: ${state.block.descriptionId}")
     }
 
