@@ -1,4 +1,4 @@
-package com.peachsoju.handlers
+package com.peachsoju.utils.handlers
 
 import com.peachsoju.eventbus.SubscribeEvent
 import com.peachsoju.eventbus.events.RenderEvent
@@ -389,7 +389,7 @@ fun RenderEvent.Extract.drawPulseInfillBox(
 ) {
     drawWireFrameBox(aabb, color, outerThickness, outerDepth)
     val t = (mc.level?.gameTime ?: 0L).toFloat()
-    val wave = (0.5f + 0.5f * kotlin.math.sin(t * speed)).coerceIn(0f, 1f)
+    val wave = (0.5f + 0.5f * sin(t * speed)).coerceIn(0f, 1f)
     val s = (wave * wave)
     val cx = (aabb.minX + aabb.maxX) * 0.5
     val cy = (aabb.minY + aabb.maxY) * 0.5
@@ -431,7 +431,7 @@ fun RenderEvent.Extract.drawPulseInfillTopFace(
     batch.add(LineData(p01, p00, rgba, rgba, outerThickness))
 
     val t = (mc.level?.gameTime ?: 0L).toFloat()
-    val wave = (0.5f + 0.5f * kotlin.math.sin(t * speed)).coerceIn(0f, 1f)
+    val wave = (0.5f + 0.5f * sin(t * speed)).coerceIn(0f, 1f)
     val s = (wave * wave).toDouble()
     fun lerp(a: Double, b: Double, t: Double) = a + (b - a) * t
     val cx = (x0 + x1) * 0.5
@@ -479,7 +479,7 @@ fun RenderEvent.Extract.drawPulseInfillInvertedPyramid(
     val apex = Vec3(cx, bottomY, cz)
 
     val t = (mc.level?.gameTime ?: 0L).toFloat()
-    val wave = (0.5f + 0.5f * kotlin.math.sin(t * speed)).coerceIn(0f, 1f)
+    val wave = (0.5f + 0.5f * sin(t * speed)).coerceIn(0f, 1f)
     val s = (wave * wave).toDouble()
     fun lerp(a: Double, b: Double, t: Double) = a + (b - a) * t
 

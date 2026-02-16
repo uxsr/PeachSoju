@@ -7,7 +7,7 @@ import com.peachsoju.PeachSoju.mc
 import com.peachsoju.eventbus.SubscribeEvent
 import com.peachsoju.eventbus.events.TickEvent
 import com.peachsoju.eventbus.events.WorldEvent
-import com.peachsoju.handlers.RightClickHandler
+import com.peachsoju.utils.handlers.RightClickHandler
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.world.level.block.Blocks

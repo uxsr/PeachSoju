@@ -9,7 +9,6 @@ import net.minecraft.client.input.MouseButtonEvent
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.network.chat.Component
 import net.minecraft.world.level.block.Block
-import net.minecraft.world.level.block.Blocks
 import kotlin.math.max
 import kotlin.math.min
 
@@ -48,6 +47,7 @@ class PeachSojuScreen : Screen(Component.literal("PeachSoju")) {
 
     private var autoroutesExpanded = true
     private var fmBlocksExpanded = true
+    private var autoSSExpanded = true
 
     private var blockSearchText = ""
     private var blockSearchActive = false
@@ -61,6 +61,7 @@ class PeachSojuScreen : Screen(Component.literal("PeachSoju")) {
         data class SectionHeader(val name: String, val expandedGetter: () -> Boolean, val toggle: () -> Unit, val enabledGetter: () -> Boolean) : GuiElement()
         data class Toggle(val name: String, val getter: () -> Boolean, val toggler: () -> Boolean, val description: String = "", val indent: Int = 0) : GuiElement()
         data class Button(val name: String, val action: () -> Unit, val description: String = "") : GuiElement()
+        data class Slider(val name: String, val getter: () -> Double, val setter: (Double) -> Unit, val min: Double, val max: Double, val suffix: String = "", val indent: Int = 0) : GuiElement()
         object BlockPicker : GuiElement()
         object Spacer : GuiElement()
     }
@@ -104,6 +105,21 @@ class PeachSojuScreen : Screen(Component.literal("PeachSoju")) {
                 add(GuiElement.BlockPicker)
             }
         }
+
+        add(GuiElement.Spacer)
+
+        add(GuiElement.SectionHeader("AutoSS", { autoSSExpanded }, { autoSSExpanded = !autoSSExpanded }, { config.autoSS() }))
+
+        if (autoSSExpanded) {
+            add(GuiElement.Toggle("Enabled", { config.autoSS() }, { config.toggleAutoSS() }, "Auto Simon Says solver", 1))
+
+            if (config.autoSS()) {
+                add(GuiElement.Slider("Click Delay", { config.autoSSDelay() }, { config.setAutoSSDelay(it) }, 50.0, 200.0, "ms", 2))
+                add(GuiElement.Slider("Start Delay", { config.autoSSAutoStartDelay() }, { config.setAutoSSAutoStartDelay(it) }, 50.0, 200.0, "ms", 2))
+                add(GuiElement.Toggle("Force Device", { config.autoSSForceDevice() }, { config.toggleAutoSSForceDevice() }, "Bypass device detection", 2))
+
+            }
+        }
     }
 
     override fun init() {
@@ -122,6 +138,7 @@ class PeachSojuScreen : Screen(Component.literal("PeachSoju")) {
                 is GuiElement.SectionHeader -> ROW_HEIGHT + 4
                 is GuiElement.Toggle -> ROW_HEIGHT
                 is GuiElement.Button -> ROW_HEIGHT
+                is GuiElement.Slider -> ROW_HEIGHT
                 is GuiElement.BlockPicker -> ROW_HEIGHT + 24
                 is GuiElement.Spacer -> 10
             }
@@ -216,6 +233,12 @@ class PeachSojuScreen : Screen(Component.literal("PeachSoju")) {
                     }
                     y += ROW_HEIGHT
                 }
+                is GuiElement.Slider -> {
+                    if (y + ROW_HEIGHT >= contentTop && y < contentBottom) {
+                        drawSlider(graphics, element, contentLeft, y, contentRight - contentLeft, mouseX, mouseY)
+                    }
+                    y += ROW_HEIGHT
+                }
                 is GuiElement.BlockPicker -> {
                     if (y + ROW_HEIGHT + 24 >= contentTop && y < contentBottom) {
                         drawBlockPicker(graphics, element, contentLeft, y, contentRight - contentLeft, mouseX, mouseY)
@@ -288,6 +311,39 @@ class PeachSojuScreen : Screen(Component.literal("PeachSoju")) {
         }
     }
 
+    private var draggingSlider: GuiElement.Slider? = null
+
+    private fun drawSlider(graphics: GuiGraphics, slider: GuiElement.Slider, x: Int, y: Int, width: Int, mouseX: Int, mouseY: Int) {
+        val indent = slider.indent * 12
+        val currentValue = slider.getter()
+
+        val valueText = "${currentValue.toInt()}${slider.suffix}"
+        graphics.drawString(font, slider.name, x + 5 + indent, y + 6, TEXT_DARK, false)
+
+        val sliderX = x + width - 130
+        val sliderW = 80
+        val sliderY = y + 7
+        val sliderH = 8
+
+        graphics.fill(sliderX - 1, sliderY - 1, sliderX + sliderW + 1, sliderY + sliderH + 1, PEACH_DARK)
+        graphics.fill(sliderX, sliderY, sliderX + sliderW, sliderY + sliderH, 0xFFCCCCCC.toInt())
+
+        val progress = ((currentValue - slider.min) / (slider.max - slider.min)).coerceIn(0.0, 1.0)
+        val thumbX = sliderX + (progress * (sliderW - 6)).toInt()
+
+        graphics.fill(sliderX, sliderY, thumbX + 3, sliderY + sliderH, PEACH_MEDIUM)
+
+        graphics.fill(thumbX, sliderY - 1, thumbX + 6, sliderY + sliderH + 1, PEACH_DARK)
+
+        graphics.drawString(font, valueText, sliderX + sliderW + 5, y + 6, TEXT_DARK, false)
+
+        if (draggingSlider == slider) {
+            val newProgress = ((mouseX - sliderX).toDouble() / sliderW).coerceIn(0.0, 1.0)
+            val newValue = slider.min + (newProgress * (slider.max - slider.min))
+            slider.setter(newValue)
+        }
+    }
+
     private fun drawBlockPicker(graphics: GuiGraphics, picker: GuiElement.BlockPicker, x: Int, y: Int, width: Int, mouseX: Int, mouseY: Int) {
         val labelText = "Selected Block:"
         val currentBlock = FMBlocksEditMode.currentBlockState.block
@@ -324,6 +380,7 @@ class PeachSojuScreen : Screen(Component.literal("PeachSoju")) {
                 is GuiElement.SectionHeader -> ROW_HEIGHT + 4
                 is GuiElement.Toggle -> ROW_HEIGHT
                 is GuiElement.Button -> ROW_HEIGHT
+                is GuiElement.Slider -> ROW_HEIGHT
                 is GuiElement.BlockPicker -> ROW_HEIGHT + 24
                 is GuiElement.Spacer -> 10
             }
@@ -432,6 +489,7 @@ class PeachSojuScreen : Screen(Component.literal("PeachSoju")) {
                 is GuiElement.SectionHeader -> ROW_HEIGHT + 4
                 is GuiElement.Toggle -> ROW_HEIGHT
                 is GuiElement.Button -> ROW_HEIGHT
+                is GuiElement.Slider -> ROW_HEIGHT
                 is GuiElement.BlockPicker -> ROW_HEIGHT + 24
                 is GuiElement.Spacer -> 10
             }
@@ -463,6 +521,19 @@ class PeachSojuScreen : Screen(Component.literal("PeachSoju")) {
                             return true
                         }
                     }
+                    is GuiElement.Slider -> {
+                        val sliderX = contentLeft + (contentRight - contentLeft) - 130
+                        val sliderW = 80
+                        val sliderY = y + 7
+                        val sliderH = 8
+                        if (mouseX >= sliderX && mouseX <= sliderX + sliderW && mouseY >= sliderY - 2 && mouseY <= sliderY + sliderH + 2) {
+                            draggingSlider = element
+                            val progress = ((mouseX - sliderX).toDouble() / sliderW).coerceIn(0.0, 1.0)
+                            val newValue = element.min + (progress * (element.max - element.min))
+                            element.setter(newValue)
+                            return true
+                        }
+                    }
                     is GuiElement.BlockPicker -> {
                         val searchX = contentLeft + 5
                         val searchY = y + ROW_HEIGHT
@@ -486,6 +557,31 @@ class PeachSojuScreen : Screen(Component.literal("PeachSoju")) {
         return super.mouseClicked(event, bl)
     }
 
+    override fun mouseReleased(event: MouseButtonEvent): Boolean {
+        if (event.button() == 0 && draggingSlider != null) {
+            draggingSlider = null
+            return true
+        }
+        return super.mouseReleased(event)
+    }
+
+    override fun mouseDragged(event: MouseButtonEvent, dragX: Double, dragY: Double): Boolean {
+        if (event.button() == 0 && draggingSlider != null) {
+            val mouseX = event.x()
+            val slider = draggingSlider!!
+            val contentLeft = guiLeft + PADDING
+            val contentRight = guiLeft + GUI_WIDTH - PADDING
+            val sliderX = contentLeft + (contentRight - contentLeft) - 130
+            val sliderW = 80
+
+            val progress = ((mouseX - sliderX) / sliderW).coerceIn(0.0, 1.0)
+            val newValue = slider.min + (progress * (slider.max - slider.min))
+            slider.setter(newValue)
+            return true
+        }
+        return super.mouseDragged(event, dragX, dragY)
+    }
+
     private fun handleBlockDropdownClick(mouseX: Int, mouseY: Int): Boolean {
         if (filteredBlocks.isEmpty()) return false
 
@@ -497,6 +593,7 @@ class PeachSojuScreen : Screen(Component.literal("PeachSoju")) {
                 is GuiElement.SectionHeader -> ROW_HEIGHT + 4
                 is GuiElement.Toggle -> ROW_HEIGHT
                 is GuiElement.Button -> ROW_HEIGHT
+                is GuiElement.Slider -> ROW_HEIGHT
                 is GuiElement.BlockPicker -> ROW_HEIGHT + 24
                 is GuiElement.Spacer -> 10
             }

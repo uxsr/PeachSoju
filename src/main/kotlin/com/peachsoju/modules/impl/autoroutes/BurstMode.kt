@@ -4,8 +4,8 @@ package com.peachsoju.modules.impl.autoroutes
 
 import com.peachsoju.PeachSoju.mc
 import com.peachsoju.config
-import com.peachsoju.handlers.RightClickHandler
-import com.peachsoju.handlers.SneakHandler
+import com.peachsoju.utils.handlers.RightClickHandler
+import com.peachsoju.utils.handlers.SneakHandler
 import com.peachsoju.modules.impl.autoroutes.data.WPType
 import com.peachsoju.modules.impl.autoroutes.data.WaypointNode
 import com.peachsoju.utils.RouteUtils

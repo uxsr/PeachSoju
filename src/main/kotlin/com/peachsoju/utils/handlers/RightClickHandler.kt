@@ -1,4 +1,4 @@
-package com.peachsoju.handlers
+package com.peachsoju.utils.handlers
 
 import com.peachsoju.PeachSoju.mc
 import com.peachsoju.eventbus.SubscribeEvent

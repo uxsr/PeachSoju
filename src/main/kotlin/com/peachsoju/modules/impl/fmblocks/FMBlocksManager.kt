@@ -6,7 +6,7 @@ import com.peachsoju.eventbus.SubscribeEvent
 import com.peachsoju.eventbus.events.PacketEvent
 import com.peachsoju.eventbus.events.TickEvent
 import com.peachsoju.eventbus.events.WorldEvent
-import com.peachsoju.handlers.FileHandler
+import com.peachsoju.utils.handlers.FileHandler
 import com.peachsoju.utils.RouteUtils
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject

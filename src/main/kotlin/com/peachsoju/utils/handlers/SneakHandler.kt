@@ -1,8 +1,9 @@
-package com.peachsoju.handlers
+package com.peachsoju.utils.handlers
 
 import com.peachsoju.PeachSoju.mc
 import com.peachsoju.eventbus.SubscribeEvent
 import com.peachsoju.eventbus.events.TickEvent
+import com.peachsoju.utils.RouteUtils
 
 object SneakHandler {
 
@@ -14,14 +15,14 @@ object SneakHandler {
     fun setSneak(sneak: Boolean, onConfirm: (() -> Unit)? = null) {
         mc.options.keyShift.isDown = sneak
 
-        com.peachsoju.utils.RouteUtils.debug("§d[Sneak] setSneak($sneak), callback=${onConfirm != null}")
+        RouteUtils.debug("§d[Sneak] setSneak($sneak), callback=${onConfirm != null}")
 
         if (onConfirm != null) {
             waitingForConfirm = true
             ticksSinceSneakSent = 0
             requiredTicks = getTicksForPing()
             onConfirmCallback = onConfirm
-            com.peachsoju.utils.RouteUtils.debug("§d[Sneak] Waiting $requiredTicks ticks for confirm")
+            RouteUtils.debug("§d[Sneak] Waiting $requiredTicks ticks for confirm")
         } else {
             waitingForConfirm = false
             onConfirmCallback = null

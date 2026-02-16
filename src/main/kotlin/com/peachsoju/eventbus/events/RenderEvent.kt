@@ -1,6 +1,6 @@
 package com.peachsoju.eventbus.events
 
-import com.peachsoju.handlers.RenderConsumer
+import com.peachsoju.utils.handlers.RenderConsumer
 import com.peachsoju.eventbus.Event
 import net.fabricmc.fabric.api.client.rendering.v1.world.AbstractWorldRenderContext
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldExtractionContext

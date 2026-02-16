@@ -5,7 +5,6 @@ import com.peachsoju.gui.commands.AutoRoutesHelpOpener
 import com.mojang.brigadier.Command
 import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
-import com.peachsoju.handlers.SneakHandler
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback
 import net.minecraft.network.chat.Component

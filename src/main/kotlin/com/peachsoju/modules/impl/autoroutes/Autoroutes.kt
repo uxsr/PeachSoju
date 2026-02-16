@@ -7,8 +7,8 @@ import com.peachsoju.eventbus.SubscribeEvent
 import com.peachsoju.eventbus.events.PacketEvent
 import com.peachsoju.eventbus.events.TickEvent
 import com.peachsoju.eventbus.events.WorldEvent
-import com.peachsoju.handlers.RightClickHandler
-import com.peachsoju.handlers.SneakHandler
+import com.peachsoju.utils.handlers.RightClickHandler
+import com.peachsoju.utils.handlers.SneakHandler
 import com.peachsoju.modules.impl.autoroutes.data.WPType
 import com.peachsoju.modules.impl.autoroutes.data.WaypointNode
 import com.peachsoju.utils.RouteUtils
@@ -29,6 +29,8 @@ object Autoroutes {
     private val enabled get() = config.autoroutes()
     private const val nodeCooldownMs = 150L
     private var leftClickWasDown = false
+    private var lastTeleportTime = 0L
+    private const val TELEPORT_GRACE_MS = 250L
 
     @SubscribeEvent
     fun onTick(event: TickEvent.Start) {
@@ -187,10 +189,13 @@ object Autoroutes {
     @SubscribeEvent
     fun onPacketReceive(event: PacketEvent.Receive) {
         val packet = event.packet
-        if (packet is ClientboundPlayerPositionPacket && pendingEtherwarps.isNotEmpty()) {
+        if (packet !is ClientboundPlayerPositionPacket) return
+
+        lastTeleportTime = System.currentTimeMillis()
+
+        if (pendingEtherwarps.isNotEmpty()) {
             pendingEtherwarps.removeFirst()
         }
-        if (packet !is ClientboundPlayerPositionPacket) return
 
         val pos = packet.change().position()
         val newPos = Vec3(pos.x, pos.y, pos.z)
@@ -233,6 +238,12 @@ object Autoroutes {
             val nodeWorldPos = RouteUtils.getNodeWorldPosition(node, room)
             if (!intersectsNode(landingPos, nodeWorldPos, node.radius, node.height)) continue
 
+            if (!config.configMode() && !RouteState.routeActive) {
+                if (!node.start) continue
+                RouteState.routeActive = true
+                RouteUtils.debug("§a[Route] Activated from start node #$nodeIndex (post-teleport)")
+            }
+
             RouteUtils.debug("§b>>> Post-teleport triggered node #$nodeIndex (${node.type})")
             RouteState.nodeCooldowns[nodeIndex] = now
             executeNode(node, nodeIndex, room)
@@ -269,6 +280,14 @@ object Autoroutes {
 
             val nodeWorldPos = RouteUtils.getNodeWorldPosition(node, room)
             if (!intersectsNode(currentPos, nodeWorldPos, node.radius, node.height)) continue
+
+            if (node.start && !config.configMode()) {
+                val arrivedViaTeleport = (now - lastTeleportTime) <= TELEPORT_GRACE_MS
+                if (!arrivedViaTeleport) {
+                    continue
+                }
+                RouteUtils.debug("§a[Route] Start node #$index activated via teleport")
+            }
 
             if (!config.configMode() && !RouteState.routeActive) {
                 if (!node.start) continue

@@ -1,7 +1,7 @@
 
 //ty leo <3
 
-package com.peachsoju.handlers
+package com.peachsoju.utils.handlers
 
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject

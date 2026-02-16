@@ -33,7 +33,14 @@ object config {
         var fmBlocksEnabled: Boolean = false,
         var fmBlocksEditMode: Boolean = false,
         var burstModeAotv: Boolean = false,
-        var fmBlocksSelectedBlock: String = "minecraft:white_stained_glass"
+        var fmBlocksSelectedBlock: String = "minecraft:white_stained_glass",
+        var autoSS: Boolean = false,
+        var autoSSDelay: Double = 200.0,
+        var autoSSForceDevice: Boolean = false,
+        var autoSSAutoStartDelay: Double = 125.0,
+        var autoSSSmoothRotate: Boolean = false,
+        var autoSSRotationTime: Double = 200.0,
+        var autoSSDontCheck: Boolean = false
     )
 
     @Volatile private var data = Data()
@@ -119,6 +126,31 @@ object config {
     fun toggleBurstModeAotv() = (!data.burstModeAotv).also { data.burstModeAotv = it; save() }
     fun fmBlocksSelectedBlock() = data.fmBlocksSelectedBlock
     fun setFmBlocksSelectedBlock(blockId: String) { data.fmBlocksSelectedBlock = blockId; save() }
+
+    fun autoSS() = data.autoSS
+    fun setAutoSS(v: Boolean) { data.autoSS = v; save() }
+    fun toggleAutoSS() = (!data.autoSS).also { data.autoSS = it; save() }
+
+    fun autoSSDelay() = data.autoSSDelay
+    fun setAutoSSDelay(v: Double) { data.autoSSDelay = v; save() }
+
+    fun autoSSForceDevice() = data.autoSSForceDevice
+    fun setAutoSSForceDevice(v: Boolean) { data.autoSSForceDevice = v; save() }
+    fun toggleAutoSSForceDevice() = (!data.autoSSForceDevice).also { data.autoSSForceDevice = it; save() }
+
+    fun autoSSAutoStartDelay() = data.autoSSAutoStartDelay
+    fun setAutoSSAutoStartDelay(v: Double) { data.autoSSAutoStartDelay = v; save() }
+
+    fun autoSSSmoothRotate() = data.autoSSSmoothRotate
+    fun setAutoSSSmoothRotate(v: Boolean) { data.autoSSSmoothRotate = v; save() }
+    fun toggleAutoSSSmoothRotate() = (!data.autoSSSmoothRotate).also { data.autoSSSmoothRotate = it; save() }
+
+    fun autoSSRotationTime() = data.autoSSRotationTime
+    fun setAutoSSRotationTime(v: Double) { data.autoSSRotationTime = v; save() }
+
+    fun autoSSDontCheck() = data.autoSSDontCheck
+    fun setAutoSSDontCheck(v: Boolean) { data.autoSSDontCheck = v; save() }
+    fun toggleAutoSSDontCheck() = (!data.autoSSDontCheck).also { data.autoSSDontCheck = it; save() }
 
     fun setNodeColor(type: WPType, r: Int, g: Int, b: Int, a: Float) {
         val appearance = data.nodeAppearances.getOrPut(type.name) { NodeAppearance() }

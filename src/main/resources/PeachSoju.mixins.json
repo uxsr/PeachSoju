@@ -6,10 +6,11 @@
 		"ExampleMixin",
 		"IMinecraftAccessor",
 		"IMultiPlayerGameModeAccessor",
-		"MixinCancelBlockInteract",
 		"MixinClientPacketListener",
 		"MixinPlayerPosition",
-		"MixinConnection"
+		"MixinConnection",
+		"ClientLevelMixin",
+		"ClientPacketListenerMixin"
 
 	],
 	"injectors": {
