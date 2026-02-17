@@ -48,6 +48,7 @@ class PeachSojuScreen : Screen(Component.literal("PeachSoju")) {
     private var autoroutesExpanded = true
     private var fmBlocksExpanded = true
     private var autoSSExpanded = true
+    private var autoIceFillExpanded = true
 
     private var blockSearchText = ""
     private var blockSearchActive = false
@@ -119,6 +120,14 @@ class PeachSojuScreen : Screen(Component.literal("PeachSoju")) {
                 add(GuiElement.Toggle("Force Device", { config.autoSSForceDevice() }, { config.toggleAutoSSForceDevice() }, "Bypass device detection", 2))
 
             }
+        }
+
+        add(GuiElement.Spacer)
+
+        add(GuiElement.SectionHeader("Auto Ice Fill", { autoIceFillExpanded }, { autoIceFillExpanded = !autoIceFillExpanded }, { config.autoIceFill() }))
+
+        if (autoIceFillExpanded) {
+            add(GuiElement.Toggle("Enabled", { config.autoIceFill() }, { config.toggleAutoIceFill() }, "Auto Ice Fill solver", 1))
         }
     }
 

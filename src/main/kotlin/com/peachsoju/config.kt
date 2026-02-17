@@ -2,6 +2,7 @@ package com.peachsoju
 
 import com.peachsoju.modules.impl.autoroutes.data.WPType
 import com.google.gson.GsonBuilder
+import com.peachsoju.modules.impl.autoicefill.AutoIceFill
 import net.fabricmc.loader.api.FabricLoader
 import java.nio.file.Files
 import java.nio.file.Path
@@ -40,7 +41,10 @@ object config {
         var autoSSAutoStartDelay: Double = 125.0,
         var autoSSSmoothRotate: Boolean = false,
         var autoSSRotationTime: Double = 200.0,
-        var autoSSDontCheck: Boolean = false
+        var autoSSDontCheck: Boolean = false,
+        var autoIceFill: Boolean = false,
+        var autoIceFillShowPath: Boolean = true,
+        var autoIceFillOptimize: Boolean = true
     )
 
     @Volatile private var data = Data()
@@ -151,6 +155,21 @@ object config {
     fun autoSSDontCheck() = data.autoSSDontCheck
     fun setAutoSSDontCheck(v: Boolean) { data.autoSSDontCheck = v; save() }
     fun toggleAutoSSDontCheck() = (!data.autoSSDontCheck).also { data.autoSSDontCheck = it; save() }
+
+    fun autoIceFillShowPath() = data.autoIceFillShowPath
+    fun setAutoIceFillShowPath(v: Boolean) { data.autoIceFillShowPath = v; save() }
+    fun toggleAutoIceFillShowPath() = (!data.autoIceFillShowPath).also { data.autoIceFillShowPath = it; save() }
+
+    fun autoIceFillOptimize() = data.autoIceFillOptimize
+    fun setAutoIceFillOptimize(v: Boolean) { data.autoIceFillOptimize = v; save() }
+    fun toggleAutoIceFillOptimize() = (!data.autoIceFillOptimize).also { data.autoIceFillOptimize = it; save() }
+
+    fun autoIceFill(): Boolean = AutoIceFill.isAutoEnabled()
+
+    fun toggleAutoIceFill(): Boolean {
+        AutoIceFill.toggleAuto()
+        return AutoIceFill.isAutoEnabled()
+    }
 
     fun setNodeColor(type: WPType, r: Int, g: Int, b: Int, a: Float) {
         val appearance = data.nodeAppearances.getOrPut(type.name) { NodeAppearance() }

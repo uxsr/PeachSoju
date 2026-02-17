@@ -3,6 +3,7 @@ package com.peachsoju
 import com.peachsoju.eventbus.EventBus
 import com.peachsoju.gui.commands.PeachSojuCommand
 import com.peachsoju.gui.commands.RotateCommand
+import com.peachsoju.modules.impl.autoicefill.AutoIceFill
 import com.peachsoju.utils.handlers.RenderBatchManager
 import com.peachsoju.utils.handlers.RightClickHandler
 import com.peachsoju.utils.handlers.SneakHandler
@@ -33,6 +34,7 @@ object PeachSoju : ModInitializer {
 		RotateCommand.register()
 		FMBlocksCommands.register()
 //		AutoSSCommand.register()
+		eventBus.register(AutoIceFill)
 		eventBus.register(FMBlocksManager)
 		eventBus.register(FMBlocksEditMode)
 		eventBus.register(NodeManager)

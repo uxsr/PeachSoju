@@ -1,10 +1,12 @@
 package com.peachsoju.eventbus;
+import com.odtheking.odin.utils.skyblock.dungeon.DungeonUtils
 import com.peachsoju.PeachSoju
 import com.peachsoju.PeachSoju.mc
 import com.peachsoju.eventbus.events.BlockUpdateEvent
 import com.peachsoju.eventbus.events.GuiEvent
 import com.peachsoju.eventbus.events.RenderEvent
 import com.peachsoju.eventbus.events.RenderOverlayEvent
+import com.peachsoju.eventbus.events.RoomEnterEvent
 import com.peachsoju.eventbus.events.TickEvent
 import com.peachsoju.eventbus.events.WorldEvent
 import com.peachsoju.utils.handlers.RenderBatchManager
@@ -18,6 +20,8 @@ import net.minecraft.core.BlockPos
 import net.minecraft.world.level.block.state.BlockState
 
 object EventDispatcher {
+
+    var lastRoom: com.odtheking.odin.utils.skyblock.dungeon.tiles.Room? = null
 
     fun initialize() {
         ClientTickEvents.START_CLIENT_TICK.register { client ->
@@ -46,6 +50,15 @@ object EventDispatcher {
 
         ScreenEvents.AFTER_INIT.register { client, screen, scaledWidth, scaledHeight ->
             PeachSoju.eventBus.post(GuiEvent.Open(screen))
+        }
+
+        ClientTickEvents.START_CLIENT_TICK.register { _ ->
+            if (mc.player == null) return@register
+            val current = DungeonUtils.currentRoom
+            if (current != lastRoom) {
+                lastRoom = current
+                PeachSoju.eventBus.post(RoomEnterEvent(current))
+            }
         }
 
     }
