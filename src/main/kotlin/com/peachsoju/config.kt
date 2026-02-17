@@ -164,11 +164,17 @@ object config {
     fun setAutoIceFillOptimize(v: Boolean) { data.autoIceFillOptimize = v; save() }
     fun toggleAutoIceFillOptimize() = (!data.autoIceFillOptimize).also { data.autoIceFillOptimize = it; save() }
 
-    fun autoIceFill(): Boolean = AutoIceFill.isAutoEnabled()
+    fun autoIceFill(): Boolean = data.autoIceFill
 
     fun toggleAutoIceFill(): Boolean {
-        AutoIceFill.toggleAuto()
-        return AutoIceFill.isAutoEnabled()
+        data.autoIceFill = !data.autoIceFill
+        save()
+        return data.autoIceFill
+    }
+
+    fun setAutoIceFill(v: Boolean) {
+        data.autoIceFill = v
+        save()
     }
 
     fun setNodeColor(type: WPType, r: Int, g: Int, b: Int, a: Float) {

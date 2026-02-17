@@ -44,7 +44,11 @@ object AutoIceFill {
     private var autoStepIndex = 0
     private var waitingForIce = false
     private var expectedIcePos: BlockPos? = null
-    private var autoEnabled = false
+
+    var autoEnabled: Boolean
+        get() = config.autoIceFill()
+        set(value) { config.setAutoIceFill(value) }
+
     private var autoStarted = false
     private var waitingTicks = 0
     private var waitingForStairDelay = false
@@ -304,7 +308,6 @@ object AutoIceFill {
         autoPattern = emptyList()
         isAutoSolving = false
         autoStarted = false
-        autoEnabled = false
         autoStepIndex = 0
         waitingForIce = false
         expectedIcePos = null
