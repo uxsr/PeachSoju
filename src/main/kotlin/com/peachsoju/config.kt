@@ -45,7 +45,11 @@ object config {
         var autoSSDontCheck: Boolean = false,
         var autoIceFill: Boolean = false,
         var autoIceFillShowPath: Boolean = true,
-        var autoIceFillOptimize: Boolean = true
+        var autoIceFillOptimize: Boolean = true,
+        var autoroutesExpanded: Boolean = true,
+        var fmBlocksExpanded: Boolean = true,
+        var autoSSExpanded: Boolean = true,
+        var autoIceFillExpanded: Boolean = true
     )
 
     @Volatile private var data = Data()
@@ -167,6 +171,15 @@ object config {
     fun autoIceFillOptimize() = data.autoIceFillOptimize
     fun setAutoIceFillOptimize(v: Boolean) { data.autoIceFillOptimize = v; save() }
     fun toggleAutoIceFillOptimize() = (!data.autoIceFillOptimize).also { data.autoIceFillOptimize = it; save() }
+
+    fun autoroutesExpanded() = data.autoroutesExpanded
+    fun setAutoroutesExpanded(v: Boolean) { data.autoroutesExpanded = v; save() }
+    fun fmBlocksExpanded() = data.fmBlocksExpanded
+    fun setFmBlocksExpanded(v: Boolean) { data.fmBlocksExpanded = v; save() }
+    fun autoSSExpanded() = data.autoSSExpanded
+    fun setAutoSSExpanded(v: Boolean) { data.autoSSExpanded = v; save() }
+    fun autoIceFillExpanded() = data.autoIceFillExpanded
+    fun setAutoIceFillExpanded(v: Boolean) { data.autoIceFillExpanded = v; save() }
 
     fun autoIceFill(): Boolean = data.autoIceFill
 

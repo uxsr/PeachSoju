@@ -45,11 +45,6 @@ class PeachSojuScreen : Screen(Component.literal("PeachSoju")) {
     private var scrollY = 0
     private var maxScroll = 0
 
-    private var autoroutesExpanded = true
-    private var fmBlocksExpanded = true
-    private var autoSSExpanded = true
-    private var autoIceFillExpanded = true
-
     private var blockSearchText = ""
     private var blockSearchActive = false
     private var filteredBlocks: List<Block> = emptyList()
@@ -68,9 +63,9 @@ class PeachSojuScreen : Screen(Component.literal("PeachSoju")) {
     }
 
     private fun buildElements(): List<GuiElement> = buildList {
-        add(GuiElement.SectionHeader("AutoRoutes", { autoroutesExpanded }, { autoroutesExpanded = !autoroutesExpanded }, { config.autoroutes() }))
+        add(GuiElement.SectionHeader("AutoRoutes", { config.autoroutesExpanded() }, { config.setAutoroutesExpanded(!config.autoroutesExpanded()) }, { config.autoroutes() }))
 
-        if (autoroutesExpanded) {
+        if (config.autoroutesExpanded()) {
             add(GuiElement.Toggle("Enabled", { config.autoroutes() }, { config.toggleAutoroutes() }, "Main module toggle", 1))
 
             if (config.autoroutes()) {
@@ -97,9 +92,9 @@ class PeachSojuScreen : Screen(Component.literal("PeachSoju")) {
 
         add(GuiElement.Spacer)
 
-        add(GuiElement.SectionHeader("FM Blocks", { fmBlocksExpanded }, { fmBlocksExpanded = !fmBlocksExpanded }, { config.fmBlocksEnabled() }))
+        add(GuiElement.SectionHeader("FM Blocks", { config.fmBlocksExpanded() }, { config.setFmBlocksExpanded(!config.fmBlocksExpanded()) }, { config.fmBlocksEnabled() }))
 
-        if (fmBlocksExpanded) {
+        if (config.fmBlocksExpanded()) {
             add(GuiElement.Toggle("Enabled", { config.fmBlocksEnabled() }, { config.toggleFmBlocksEnabled() }, "Main module toggle", 1))
 
             if (config.fmBlocksEnabled()) {
@@ -110,9 +105,9 @@ class PeachSojuScreen : Screen(Component.literal("PeachSoju")) {
 
         add(GuiElement.Spacer)
 
-        add(GuiElement.SectionHeader("AutoSS", { autoSSExpanded }, { autoSSExpanded = !autoSSExpanded }, { config.autoSS() }))
+        add(GuiElement.SectionHeader("AutoSS", { config.autoSSExpanded() }, { config.setAutoSSExpanded(!config.autoSSExpanded()) }, { config.autoSS() }))
 
-        if (autoSSExpanded) {
+        if (config.autoSSExpanded()) {
             add(GuiElement.Toggle("Enabled", { config.autoSS() }, { config.toggleAutoSS() }, "Auto Simon Says solver", 1))
 
             if (config.autoSS()) {
@@ -125,9 +120,9 @@ class PeachSojuScreen : Screen(Component.literal("PeachSoju")) {
 
         add(GuiElement.Spacer)
 
-        add(GuiElement.SectionHeader("Auto Ice Fill", { autoIceFillExpanded }, { autoIceFillExpanded = !autoIceFillExpanded }, { config.autoIceFill() }))
+        add(GuiElement.SectionHeader("Auto Ice Fill", { config.autoIceFillExpanded() }, { config.setAutoIceFillExpanded(!config.autoIceFillExpanded()) }, { config.autoIceFill() }))
 
-        if (autoIceFillExpanded) {
+        if (config.autoIceFillExpanded()) {
             add(GuiElement.Toggle("Enabled", { config.autoIceFill() }, { config.toggleAutoIceFill() }, "Auto Ice Fill solver", 1))
         }
     }
