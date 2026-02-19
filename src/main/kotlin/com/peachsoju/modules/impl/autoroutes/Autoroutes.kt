@@ -98,15 +98,15 @@ object Autoroutes {
             }
         }
 
-        if (RouteState.awaitingSecrets > 0 || RouteState.awaitingSecretConfirmation || BatListener.isAwaitingBat()) {
+        if (RouteState.awaitingSecrets > 0 || RouteState.awaitingSecretConfirmation || BatListener.isAwaitingBat() || DungeonBreakerListener.isAwaitingDb()) {
             val leftClickDown = mc.options.keyAttack.isDown
             if (leftClickDown && !leftClickWasDown) {
                 val hit = mc.hitResult
                 if (hit == null || hit.type == HitResult.Type.MISS) {
-                    if (BatListener.isAwaitingBat()) {
-                        BatListener.manualTrigger()
-                    } else {
-                        SecretListener.manualTrigger()
+                    when {
+                        BatListener.isAwaitingBat() -> BatListener.manualTrigger()
+                        DungeonBreakerListener.isAwaitingDb() -> DungeonBreakerListener.manualTrigger()
+                        else -> SecretListener.manualTrigger()
                     }
                 }
             }
@@ -124,6 +124,21 @@ object Autoroutes {
                 if (!intersectsNode(currentPos, nodeWorldPos, awaitNode.radius, awaitNode.height)) {
                     RouteUtils.debug("§c[Bat] Player left bat await node #$awaitIndex - cancelling")
                     BatListener.cancel()
+                }
+            }
+        }
+
+        if (DungeonBreakerListener.isAwaitingDb()) {
+            val awaitIndex = DungeonBreakerListener.getAwaitingNodeIndex()
+            val awaitNode = DungeonBreakerListener.getAwaitingNode()
+
+            if (awaitNode != null) {
+                val nodeWorldPos = RouteUtils.getNodeWorldPosition(awaitNode, room)
+                val currentPos = player.position()
+
+                if (!intersectsNode(currentPos, nodeWorldPos, awaitNode.radius, awaitNode.height)) {
+                    RouteUtils.debug("§c[DB] Player left DB await node #$awaitIndex - cancelling")
+                    DungeonBreakerListener.cancel()
                 }
             }
         }
@@ -229,7 +244,7 @@ object Autoroutes {
 
             if (nodeIndex in RouteState.actionLockedNodes) {
                 val lockTime = RouteState.actionLockTimes[nodeIndex] ?: 0L
-                val timeout = RouteState.getActionLockTimeout(node.type)
+                val timeout = RouteState.getActionLockTimeout(node.type, node)
                 if (now - lockTime < timeout) continue
                 RouteState.actionLockedNodes.remove(nodeIndex)
                 RouteState.actionLockTimes.remove(nodeIndex)
@@ -258,6 +273,7 @@ object Autoroutes {
         RouteState.fullReset()
         SneakHandler.releaseSneak()
         BatListener.cancel()
+        DungeonBreakerListener.cancel()
         NodeManager.reloadFromDisk()
         pendingEtherwarps.clear()
         lastStartNode = null
@@ -269,7 +285,7 @@ object Autoroutes {
         for ((index, node) in RouteState.nodeList.withIndex()) {
             if (index in RouteState.actionLockedNodes) {
                 val lockTime = RouteState.actionLockTimes[index] ?: 0L
-                val timeout = RouteState.getActionLockTimeout(node.type)
+                val timeout = RouteState.getActionLockTimeout(node.type, node)
                 if (now - lockTime < timeout) continue
                 RouteState.actionLockedNodes.remove(index)
                 RouteState.actionLockTimes.remove(index)
@@ -379,6 +395,38 @@ object Autoroutes {
                 RouteUtils.debug("§eNode #$index waiting for bat spawn")
                 BatListener.startWaitingForBat(node, index, room)
                 RouteState.unlock()
+            }
+
+            node.awaitDb && node.awaitSecret > 0 -> {
+                RouteUtils.debug("§eNode #$index requires ${node.awaitSecret} secret(s) AND DB blocks to be mined")
+
+                if (DungeonBreakerListener.shouldWaitForDb(node, room)) {
+                    SecretListener.setAwaitType(node.awaitType)
+                    RouteState.awaitingSecrets = node.awaitSecret
+                    RouteState.pendingNodeIndex = index
+
+                    DungeonBreakerListener.startWaitingForDbAndSecrets(node, index, room)
+                    RouteState.unlock()
+                } else {
+                    SecretListener.setAwaitType(node.awaitType)
+                    if (node.type == WPType.ETHER) { RouteUtils.debug("§eETHER await node - starting sneak"); SneakHandler.setSneak(true) }
+                    else if (node.type == WPType.AOTV) { RouteUtils.debug("§eAOTV await node - releasing sneak"); SneakHandler.releaseSneak() }
+                    RouteState.awaitingSecrets = node.awaitSecret
+                    RouteState.pendingNodeIndex = index
+                    SecretListener.checkBufferedItems()
+                    RouteState.unlock()
+                }
+            }
+
+            node.awaitDb -> {
+                if (DungeonBreakerListener.shouldWaitForDb(node, room)) {
+                    RouteUtils.debug("§eNode #$index waiting for DB blocks to be mined")
+                    if (node.type == WPType.ETHER) { RouteUtils.debug("§eETHER DB node - starting sneak"); SneakHandler.setSneak(true) }
+                    DungeonBreakerListener.startWaitingForDb(node, index, room)
+                    RouteState.unlock()
+                } else {
+                    doNodeAction(node, index, room)
+                }
             }
             node.awaitSecret > 0 -> {
                 RouteUtils.debug("§eNode #$index requires ${node.awaitSecret} secret(s) of type: ${node.awaitType}")

@@ -63,11 +63,21 @@ object RouteState {
         previousPosition = Vec3.ZERO
     }
 
-    fun getActionLockTimeout(type: WPType): Long {
+    fun getActionLockTimeout(type: WPType, node: WaypointNode? = null): Long {
+        if (node != null && hasModifiers(node)) {
+            return ACTION_LOCK_TIMEOUT_DEFAULT_MS
+        }
+
         return when (type) {
             WPType.ETHER, WPType.AOTV -> ACTION_LOCK_TIMEOUT_TELEPORT_MS
             else -> ACTION_LOCK_TIMEOUT_DEFAULT_MS
         }
+    }
+
+    private fun hasModifiers(node: WaypointNode): Boolean {
+        return node.awaitSecret > 0 ||
+                node.awaitBat ||
+                node.delay > 0
     }
 
     fun isLocked() = consumed > 0 || waitingForTeleport || awaitingSecretConfirmation

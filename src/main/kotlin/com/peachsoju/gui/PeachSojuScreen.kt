@@ -86,6 +86,7 @@ class PeachSojuScreen : Screen(Component.literal("PeachSoju")) {
                 if (config.waypointRendering()) {
                     add(GuiElement.Toggle("Show Lines", { config.showLines() }, { config.toggleShowLines() }, "Draw burst chain lines", 3))
                     add(GuiElement.Toggle("Start Only", { config.renderOnlyStartNodes() }, { config.toggleRenderOnlyStartNodes() }, "Only render start nodes", 3))
+                    add(GuiElement.Toggle("ESP", { config.waypointEsp() }, { config.toggleWaypointEsp() }, "See nodes through walls", 3))
                 }
 
                 add(GuiElement.Toggle("Debug Mode", { config.debug() }, { config.toggleDebug() }, "Show debug messages", 2))

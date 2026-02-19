@@ -41,16 +41,21 @@ object SecretListener {
             val room = RouteState.currentRoom
 
             if (node != null) {
-                RouteUtils.debug("§a§lAll secrets collected! going immediately")
+                if (DungeonBreakerListener.isAwaitingDb() && DungeonBreakerListener.isAlsoAwaitingSecrets()) {
+                    RouteUtils.debug("§a§lAll secrets collected! Checking DB blocks...")
+                    DungeonBreakerListener.checkCombinedConditions()
+                } else {
+                    RouteUtils.debug("§a§lAll secrets collected! going immediately")
 
-                RouteState.awaitingSecretConfirmation = true
-                RouteState.secretConfirmationTicks = 0
-                RouteState.pendingAwaitNode = node
-                RouteState.pendingAwaitNodeIndex = index
-                RouteState.pendingAwaitNodeRoom = room
+                    RouteState.awaitingSecretConfirmation = true
+                    RouteState.secretConfirmationTicks = 2
+                    RouteState.pendingAwaitNode = node
+                    RouteState.pendingAwaitNodeIndex = index
+                    RouteState.pendingAwaitNodeRoom = room
 
-                RouteState.waitingForTeleport = true
-                RouteState.awaitingTeleportNodeIndex = index
+                    RouteState.waitingForTeleport = true
+                    RouteState.awaitingTeleportNodeIndex = index
+                }
             }
 
             RouteState.pendingNodeIndex = -1

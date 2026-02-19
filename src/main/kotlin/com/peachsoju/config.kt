@@ -31,6 +31,7 @@ object config {
         var showLines: Boolean = false,
         var nodeAppearances: MutableMap<String, NodeAppearance> = mutableMapOf(),
         var renderOnlyStartNodes: Boolean = false,
+        var waypointEsp: Boolean = true,
         var fmBlocksEnabled: Boolean = false,
         var fmBlocksEditMode: Boolean = false,
         var burstModeAotv: Boolean = false,
@@ -113,6 +114,9 @@ object config {
     fun renderOnlyStartNodes() = data.renderOnlyStartNodes
     fun setRenderOnlyStartNodes(v: Boolean) { data.renderOnlyStartNodes = v; save() }
     fun toggleRenderOnlyStartNodes() = (!data.renderOnlyStartNodes).also { data.renderOnlyStartNodes = it; save() }
+    fun waypointEsp() = data.waypointEsp
+    fun setWaypointEsp(v: Boolean) { data.waypointEsp = v; save() }
+    fun toggleWaypointEsp() = (!data.waypointEsp).also { data.waypointEsp = it; save() }
     fun showLines() = data.showLines
     fun setShowLines(v: Boolean) { data.showLines = v; save() }
     fun toggleShowLines() = (!data.showLines).also { data.showLines = it; save() }

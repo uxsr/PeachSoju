@@ -49,6 +49,7 @@ object  NodeManager {
     val editing: Boolean get() = config.waypointEditing()
     val renderOnlyStartNodes: Boolean get() = config.renderOnlyStartNodes()
     val showLines: Boolean get() = config.showLines()
+    val esp: Boolean get() = config.waypointEsp()
     var simulating: String? = null
 
     private const val dashLength = 0.8
@@ -111,7 +112,9 @@ object  NodeManager {
         for ((idx, node) in nodes.withIndex()) {
             val nodeWorldPos = RouteUtils.getNodeWorldPosition(node, room)
             val dist = playerPos.distanceTo(nodeWorldPos)
-            if (dist <= removeRadius && dist < closestDistance) { closestNode = node; closestIndex = idx; closestDistance = dist }
+            if (dist <= removeRadius && dist < closestDistance) {
+                closestNode = node; closestIndex = idx; closestDistance = dist
+            }
         }
 
         if (closestNode == null || closestIndex == -1) return "§cNo node within $removeRadius blocks"
@@ -152,7 +155,7 @@ object  NodeManager {
         val parsed = parseAddArgs(rawArgs) ?: return """
             §c[AR] Usage: /ar add <type> [modifiers...]
             §7Types: §fether, aotv, hype, superboom, await, useitem, nop
-            §7Modifiers: §fchained, exact, stop, center, await:N, awaitbat, delay:N, item:NAME
+            §7Modifiers: §fchained, exact, stop, center, await:N, awaitbat, db, delay:N, item:NAME
         """.trimIndent()
 
         val (type, modifiers) = parsed
@@ -170,7 +173,8 @@ object  NodeManager {
         val node = makeNode(floorBlock, fracX, fracZ, room, type, yaw, pitch, modifiers, targetBlock)
         val list = waypoints.getOrPut(key) { mutableListOf() }
 
-        val existingIndex = list.indexOfFirst { it.type == node.type && it.x == node.x && it.y == node.y && it.z == node.z }
+        val existingIndex =
+            list.indexOfFirst { it.type == node.type && it.x == node.x && it.y == node.y && it.z == node.z }
         if (existingIndex >= 0) {
             list.removeAt(existingIndex)
             save()
@@ -231,6 +235,7 @@ object  NodeManager {
             "height" -> node.copyWith(height = value?.toDoubleOrNull() ?: 1.5)
             "item" -> node.copyWith(itemName = value)
             "mult" -> node.copyWith(mult = value?.toIntOrNull()?.coerceIn(1, 10) ?: 1)
+            "db", "awaitdb" -> node.copyWith(awaitDb = value?.toBooleanStrictOrNull() ?: !node.awaitDb)
             else -> return "§c[AR] Unknown modifier: $modifier"
         }
 
@@ -353,7 +358,8 @@ object  NodeManager {
                         scannedRooms[roomName] = room
                         RouteUtils.debug("§a[Scan] Found room: $roomName at grid ($gridX, $gridZ)")
                     }
-                } catch (_: Exception) { }
+                } catch (_: Exception) {
+                }
             }
         }
     }
@@ -406,7 +412,7 @@ object  NodeManager {
                         for ((fromApex, toApex, color) in segments) {
                             event.drawAnimatedDashedLine(
                                 from = fromApex, to = toApex, color = color,
-                                depth = false, thickness = 2f,
+                                depth = !esp, thickness = 2f,
                                 dashLength = dashLength, gapLength = gapLength, animationOffset = lineAnimationOffset
                             )
                         }
@@ -443,7 +449,8 @@ object  NodeManager {
 
     private fun renderNode(event: RenderEvent.Extract, node: WaypointNode, room: Room?) {
         val blockPosRel = BlockPos(floor(node.x).toInt(), node.y.toInt(), floor(node.z).toInt())
-        val blockPosWorld = if (DungeonUtils.inDungeons && room != null) getCoordsOfBlock(blockPosRel, room) else blockPosRel
+        val blockPosWorld =
+            if (DungeonUtils.inDungeons && room != null) getCoordsOfBlock(blockPosRel, room) else blockPosRel
 
         val aabb = AABB(blockPosWorld)
         val box = aabb.inflate(0.01)
@@ -456,14 +463,14 @@ object  NodeManager {
         val style = NodeAppearanceSettings.getStyle(node.type)
         val color = colorFor(node)
         when (style) {
-            RenderStyle.PULSE_PYRAMID -> event.drawPulseInfillInvertedPyramid(box, color)
-            RenderStyle.WIREFRAME -> event.drawWireFrameBox(box, color, depth = false)
-            RenderStyle.FILLED -> event.drawFilledBox(box, color, depth = false)
-            RenderStyle.CORNER_BOX -> event.drawCornerBox(box, color, depth = false)
-            RenderStyle.DASHED -> event.drawDashedWireBox(box, color, depth = false)
-            RenderStyle.DIAMOND -> event.drawDiamond(box, color, style = 1, depth = false)
-            RenderStyle.PULSE_BOX -> event.drawPulseBox(box, color, depth = false)
-            RenderStyle.X_BOX -> event.drawXBox(box, color, depth = false)
+            RenderStyle.PULSE_PYRAMID -> event.drawPulseInfillInvertedPyramid(box, color, outerDepth = !esp, sideDepth = !esp)
+            RenderStyle.WIREFRAME -> event.drawWireFrameBox(box, color, depth = !esp)
+            RenderStyle.FILLED -> event.drawFilledBox(box, color, depth = !esp)
+            RenderStyle.CORNER_BOX -> event.drawCornerBox(box, color, depth = !esp)
+            RenderStyle.DASHED -> event.drawDashedWireBox(box, color, depth = !esp)
+            RenderStyle.DIAMOND -> event.drawDiamond(box, color, style = 1, depth = !esp)
+            RenderStyle.PULSE_BOX -> event.drawPulseBox(box, color, depth = !esp)
+            RenderStyle.X_BOX -> event.drawXBox(box, color, depth = !esp)
         }
 
         if (node.type == WPType.AOTV && node.mult > 1) {
@@ -472,7 +479,7 @@ object  NodeManager {
                 blockPosWorld.y + 1.2,
                 blockPosWorld.z + 0.5
             )
-            event.drawText("§6${node.mult}", textPos, 0.9f, depth = false)
+            event.drawText("§6${node.mult}", textPos, 0.9f, depth = !esp)
         }
     }
 
@@ -505,11 +512,13 @@ object  NodeManager {
                 val toWorld = if (DungeonUtils.inDungeons) getCoordsOfBlock(toBlockPos, room) else toBlockPos
 
                 val lineColor = Color(85, 255, 255, 1f)
-                segments.add(Triple(
-                    Vec3(fromWorld.x + 0.5, fromWorld.y.toDouble(), fromWorld.z + 0.5),
-                    Vec3(toWorld.x + 0.5, toWorld.y.toDouble(), toWorld.z + 0.5),
-                    lineColor
-                ))
+                segments.add(
+                    Triple(
+                        Vec3(fromWorld.x + 0.5, fromWorld.y.toDouble(), fromWorld.z + 0.5),
+                        Vec3(toWorld.x + 0.5, toWorld.y.toDouble(), toWorld.z + 0.5),
+                        lineColor
+                    )
+                )
             }
         }
 
@@ -529,11 +538,13 @@ object  NodeManager {
                 val fromWorld = if (DungeonUtils.inDungeons) getCoordsOfBlock(fromBlockPos, room) else fromBlockPos
                 val toWorld = if (DungeonUtils.inDungeons) getCoordsOfBlock(toBlockPos, room) else toBlockPos
                 val lineColor = Color(255, 255, 255, 1f)
-                segments.add(Triple(
-                    Vec3(fromWorld.x + 0.5, fromWorld.y.toDouble(), fromWorld.z + 0.5),
-                    Vec3(toWorld.x + 0.5, toWorld.y.toDouble(), toWorld.z + 0.5),
-                    lineColor
-                ))
+                segments.add(
+                    Triple(
+                        Vec3(fromWorld.x + 0.5, fromWorld.y.toDouble(), fromWorld.z + 0.5),
+                        Vec3(toWorld.x + 0.5, toWorld.y.toDouble(), toWorld.z + 0.5),
+                        lineColor
+                    )
+                )
             }
         }
 
@@ -557,11 +568,13 @@ object  NodeManager {
                 part == "center" -> modifiers["center"] = "true"
                 part == "awaitbat" -> modifiers["awaitbat"] = "true"
                 part == "start" -> modifiers["start"] = "true"
+                part == "db" || part == "awaitdb" -> modifiers["awaitdb"] = "true"
                 part.startsWith("await:") -> {
                     val awaitParts = part.substringAfter("await:").split(":")
                     modifiers["await"] = awaitParts[0]
                     if (awaitParts.size > 1) modifiers["awaitType"] = awaitParts[1]
                 }
+
                 part.startsWith("delay:") -> modifiers["delay"] = part.substringAfter("delay:")
                 part.startsWith("item:") -> modifiers["item"] = part.substringAfter("item:")
                 part.startsWith("radius:") -> modifiers["radius"] = part.substringAfter("radius:")
@@ -589,7 +602,8 @@ object  NodeManager {
         val x = if (exact) base.x.toDouble() + fracX else base.x.toDouble()
         val z = if (exact) base.z.toDouble() + fracZ else base.z.toDouble()
         val relativeYaw = if (DungeonUtils.inDungeons && room != null) getRelativeYaw(yaw, room) else yaw
-        val relTargetBlock = if (targetBlock != null && DungeonUtils.inDungeons) getRelativeCoords(targetBlock, room) else targetBlock
+        val relTargetBlock =
+            if (targetBlock != null && DungeonUtils.inDungeons) getRelativeCoords(targetBlock, room) else targetBlock
 
         return WaypointNode(
             x = x, y = base.y.toDouble(), z = z,
@@ -604,6 +618,7 @@ object  NodeManager {
             awaitSecret = modifiers["await"]?.toIntOrNull() ?: 0,
             awaitBat = modifiers.containsKey("awaitbat"),
             awaitType = modifiers["awaitType"] ?: "any",
+            awaitDb = modifiers.containsKey("awaitdb"),
             toBlock = null,
             targetBlock = relTargetBlock,
             itemName = modifiers["item"],
@@ -634,6 +649,7 @@ object  NodeManager {
         if (node.center) parts.add("center")
         if (node.awaitSecret > 0) parts.add("await:${node.awaitSecret}")
         if (node.awaitBat) parts.add("awaitbat")
+        if (node.awaitDb) parts.add("db")
         if (node.start) parts.add("start")
         if (node.delay > 0) parts.add("delay:${node.delay}")
         if (node.itemName != null) parts.add("item:${node.itemName}")
@@ -654,7 +670,12 @@ object  NodeManager {
     private fun colorFor(node: WaypointNode): Color {
         val color = NodeAppearanceSettings.getColor(node.type)
         val alpha = if (node.chained) color.alphaFloat * 0.6f else color.alphaFloat
-        return Color((color.redFloat * 255).toInt(), (color.greenFloat * 255).toInt(), (color.blueFloat * 255).toInt(), alpha)
+        return Color(
+            (color.redFloat * 255).toInt(),
+            (color.greenFloat * 255).toInt(),
+            (color.blueFloat * 255).toInt(),
+            alpha
+        )
     }
 
     private fun Rotations.toDegrees(): Float = when (this) {
@@ -675,7 +696,9 @@ object  NodeManager {
     }
 
     private fun save() {
-        if (!loaded) { load(); loaded = true }
+        if (!loaded) {
+            load(); loaded = true
+        }
 
         val json = JsonObject()
         waypoints.forEach { (roomName, nodes) ->
@@ -685,7 +708,10 @@ object  NodeManager {
                 if (node.exact) {
                     obj.addProperty("x", node.x); obj.addProperty("y", node.y); obj.addProperty("z", node.z)
                 } else {
-                    obj.addProperty("x", node.x.toInt()); obj.addProperty("y", node.y.toInt()); obj.addProperty("z", node.z.toInt())
+                    obj.addProperty("x", node.x.toInt()); obj.addProperty("y", node.y.toInt()); obj.addProperty(
+                        "z",
+                        node.z.toInt()
+                    )
                 }
                 obj.addProperty("exact", node.exact)
                 obj.addProperty("type", node.type.name)
@@ -701,13 +727,18 @@ object  NodeManager {
                 obj.addProperty("awaitSecret", node.awaitSecret)
                 obj.addProperty("awaitBat", node.awaitBat)
                 obj.addProperty("awaitType", node.awaitType)
+                obj.addProperty("awaitDb", node.awaitDb)
                 obj.addProperty("mult", node.mult)
 
                 node.toBlock?.let { tb ->
-                    obj.add("toBlock", JsonObject().apply { addProperty("x", tb.x); addProperty("y", tb.y); addProperty("z", tb.z) })
+                    obj.add(
+                        "toBlock",
+                        JsonObject().apply { addProperty("x", tb.x); addProperty("y", tb.y); addProperty("z", tb.z) })
                 }
                 node.targetBlock?.let { tb ->
-                    obj.add("targetBlock", JsonObject().apply { addProperty("x", tb.x); addProperty("y", tb.y); addProperty("z", tb.z) })
+                    obj.add(
+                        "targetBlock",
+                        JsonObject().apply { addProperty("x", tb.x); addProperty("y", tb.y); addProperty("z", tb.z) })
                 }
                 node.itemName?.let { obj.addProperty("itemName", it) }
                 array.add(obj)
@@ -737,8 +768,20 @@ object  NodeManager {
                 if (obj.has("ox")) x += obj.get("ox").asDouble
                 if (obj.has("oz")) z += obj.get("oz").asDouble
 
-                val toBlock = obj.get("toBlock")?.asJsonObject?.let { BlockPos(it.get("x").asInt, it.get("y").asInt, it.get("z").asInt) }
-                val targetBlock = obj.get("targetBlock")?.asJsonObject?.let { BlockPos(it.get("x").asInt, it.get("y").asInt, it.get("z").asInt) }
+                val toBlock = obj.get("toBlock")?.asJsonObject?.let {
+                    BlockPos(
+                        it.get("x").asInt,
+                        it.get("y").asInt,
+                        it.get("z").asInt
+                    )
+                }
+                val targetBlock = obj.get("targetBlock")?.asJsonObject?.let {
+                    BlockPos(
+                        it.get("x").asInt,
+                        it.get("y").asInt,
+                        it.get("z").asInt
+                    )
+                }
 
                 nodes.add(
                     WaypointNode(
@@ -757,14 +800,15 @@ object  NodeManager {
                         awaitSecret = int("awaitSecret"),
                         awaitBat = bool("awaitBat"),
                         awaitType = str("awaitType") ?: "any",
+                        awaitDb = bool("awaitDb"),
                         toBlock = toBlock,
                         targetBlock = targetBlock,
                         itemName = str("itemName"),
                         mult = obj.get("mult")?.asInt ?: 1
                     )
                 )
+                waypoints[roomName] = nodes
             }
-            waypoints[roomName] = nodes
         }
     }
 }

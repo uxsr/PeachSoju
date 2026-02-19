@@ -107,7 +107,7 @@ object BurstMode {
     data class BurstChain(val nodes: List<WaypointNode>, val indices: List<Int>)
 
     fun shouldBurst(node: WaypointNode): Boolean =
-        enabled && !executingBurst && node.type == WPType.ETHER && node.awaitSecret <= 0 && !node.awaitBat && node.delay <= 0
+        enabled && !executingBurst && node.type == WPType.ETHER && node.awaitSecret <= 0 && !node.awaitBat && !node.awaitDb && node.delay <= 0
 
     fun findBurstChain(
         startNode: WaypointNode,
@@ -134,6 +134,7 @@ object BurstMode {
             if (currentNode.type != WPType.ETHER) { RouteUtils.extraDebug("§e[Burst] Stop: non-ETHER node (type=${currentNode.type})"); break }
             if (!(isFirstNode && skipFirstNodeChecks) && currentNode.awaitSecret > 0) { RouteUtils.extraDebug("§e[Burst] Stop: await secret (${currentNode.awaitSecret})"); break }
             if (!(isFirstNode && skipFirstNodeChecks) && currentNode.awaitBat) { RouteUtils.extraDebug("§e[Burst] Stop: await bat"); break }
+            if (!(isFirstNode && skipFirstNodeChecks) && currentNode.awaitDb) { RouteUtils.extraDebug("§e[Burst] Stop: await db"); break }
             if (!(isFirstNode && skipFirstNodeChecks) && currentNode.delay > 0) { RouteUtils.extraDebug("§e[Burst] Stop: delay (${currentNode.delay} ticks)"); break }
 
             chain.add(currentNode); indices.add(currentIndex)
@@ -230,7 +231,7 @@ object BurstMode {
     }
 
     fun shouldAotvBurst(node: WaypointNode): Boolean =
-        aotvEnabled && !executingBurst && node.type == WPType.AOTV && node.awaitSecret <= 0 && !node.awaitBat && node.delay <= 0
+        aotvEnabled && !executingBurst && node.type == WPType.AOTV && node.awaitSecret <= 0 && !node.awaitBat && !node.awaitDb && node.delay <= 0
 
     fun findAotvBurstChain(
         startNode: WaypointNode,
@@ -263,6 +264,11 @@ object BurstMode {
             }
             if (chain.isNotEmpty() && currentNode.delay > 0) {
                 RouteUtils.extraDebug("§e[AOTV Burst] Stop: delay (${currentNode.delay} ticks)")
+                break
+            }
+
+            if (chain.isNotEmpty() && currentNode.awaitDb) {
+                RouteUtils.extraDebug("§e[AOTV Burst] Stop: await db")
                 break
             }
 
