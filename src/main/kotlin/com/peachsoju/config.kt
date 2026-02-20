@@ -49,7 +49,11 @@ object config {
         var autoroutesExpanded: Boolean = true,
         var fmBlocksExpanded: Boolean = true,
         var autoSSExpanded: Boolean = true,
-        var autoIceFillExpanded: Boolean = true
+        var autoIceFillExpanded: Boolean = true,
+        var stormBowTimer: Boolean = false,
+        var stormAutoRelease: Boolean = false,
+        var stormReleaseTime: Double = 34.25,
+        var stormBowTimerExpanded: Boolean = true
     )
 
     @Volatile private var data = Data()
@@ -180,6 +184,19 @@ object config {
     fun setAutoSSExpanded(v: Boolean) { data.autoSSExpanded = v; save() }
     fun autoIceFillExpanded() = data.autoIceFillExpanded
     fun setAutoIceFillExpanded(v: Boolean) { data.autoIceFillExpanded = v; save() }
+
+    fun stormBowTimer() = data.stormBowTimer
+    fun setStormBowTimer(v: Boolean) { data.stormBowTimer = v; save() }
+    fun toggleStormBowTimer() = (!data.stormBowTimer).also { data.stormBowTimer = it; save() }
+
+    fun stormAutoRelease() = data.stormAutoRelease
+    fun setStormAutoRelease(v: Boolean) { data.stormAutoRelease = v; save() }
+    fun toggleStormAutoRelease() = (!data.stormAutoRelease).also { data.stormAutoRelease = it; save() }
+
+    fun stormReleaseTime() = data.stormReleaseTime
+    fun setStormReleaseTime(v: Double) { data.stormReleaseTime = v; save() }
+    fun stormBowTimerExpanded() = data.stormBowTimerExpanded
+    fun setStormBowTimerExpanded(v: Boolean) { data.stormBowTimerExpanded = v; save() }
 
     fun autoIceFill(): Boolean = data.autoIceFill
 

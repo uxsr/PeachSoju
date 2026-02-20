@@ -53,11 +53,15 @@ class PeachSojuScreen : Screen(Component.literal("PeachSoju")) {
 
     private var tooltipToDraw: Triple<Int, Int, String>? = null
 
+    private var activeTextField: GuiElement.TextField? = null
+    private val textFieldValues = mutableMapOf<String, String>()
+
     private sealed class GuiElement {
         data class SectionHeader(val name: String, val expandedGetter: () -> Boolean, val toggle: () -> Unit, val enabledGetter: () -> Boolean) : GuiElement()
         data class Toggle(val name: String, val getter: () -> Boolean, val toggler: () -> Boolean, val description: String = "", val indent: Int = 0) : GuiElement()
         data class Button(val name: String, val action: () -> Unit, val description: String = "") : GuiElement()
         data class Slider(val name: String, val getter: () -> Double, val setter: (Double) -> Unit, val min: Double, val max: Double, val suffix: String = "", val indent: Int = 0) : GuiElement()
+        data class TextField(val id: String, val name: String, val getter: () -> Double, val setter: (Double) -> Unit, val min: Double, val max: Double, val suffix: String = "", val description: String = "", val indent: Int = 0) : GuiElement()
         object BlockPicker : GuiElement()
         object Spacer : GuiElement()
     }
@@ -125,6 +129,29 @@ class PeachSojuScreen : Screen(Component.literal("PeachSoju")) {
         if (config.autoIceFillExpanded()) {
             add(GuiElement.Toggle("Enabled", { config.autoIceFill() }, { config.toggleAutoIceFill() }, "Auto Ice Fill solver", 1))
         }
+
+        add(GuiElement.Spacer)
+
+        add(GuiElement.SectionHeader("Storm Bow Timer", { config.stormBowTimerExpanded() }, { config.setStormBowTimerExpanded(!config.stormBowTimerExpanded()) }, { config.stormBowTimer() }))
+
+        if (config.stormBowTimerExpanded()) {
+            add(GuiElement.Toggle("Enabled", { config.stormBowTimer() }, { config.toggleStormBowTimer() }, "Storm bow release timer", 1))
+
+            if (config.stormBowTimer()) {
+                add(GuiElement.Toggle("Auto Release", { config.stormAutoRelease() }, { config.toggleStormAutoRelease() }, "Automatically release bow", 2))
+                add(GuiElement.TextField(
+                    id = "stormReleaseTime",
+                    name = "Release Time",
+                    getter = { config.stormReleaseTime() },
+                    setter = { config.setStormReleaseTime(it) },
+                    min = 20.0,
+                    max = 45.0,
+                    suffix = "s",
+                    description = "Time to release bow (20-45s)",
+                    indent = 2
+                ))
+            }
+        }
     }
 
     override fun init() {
@@ -133,6 +160,11 @@ class PeachSojuScreen : Screen(Component.literal("PeachSoju")) {
         FMBlocksEditMode.initialize()
         updateFilteredBlocks()
         recomputeMaxScroll()
+        initTextFieldValues()
+    }
+
+    private fun initTextFieldValues() {
+        textFieldValues["stormReleaseTime"] = String.format("%.2f", config.stormReleaseTime())
     }
 
     private fun recomputeMaxScroll() {
@@ -144,6 +176,7 @@ class PeachSojuScreen : Screen(Component.literal("PeachSoju")) {
                 is GuiElement.Toggle -> ROW_HEIGHT
                 is GuiElement.Button -> ROW_HEIGHT
                 is GuiElement.Slider -> ROW_HEIGHT
+                is GuiElement.TextField -> ROW_HEIGHT
                 is GuiElement.BlockPicker -> ROW_HEIGHT + 24
                 is GuiElement.Spacer -> 10
             }
@@ -241,6 +274,12 @@ class PeachSojuScreen : Screen(Component.literal("PeachSoju")) {
                 is GuiElement.Slider -> {
                     if (y + ROW_HEIGHT >= contentTop && y < contentBottom) {
                         drawSlider(graphics, element, contentLeft, y, contentRight - contentLeft, mouseX, mouseY)
+                    }
+                    y += ROW_HEIGHT
+                }
+                is GuiElement.TextField -> {
+                    if (y + ROW_HEIGHT >= contentTop && y < contentBottom) {
+                        drawTextField(graphics, element, contentLeft, y, contentRight - contentLeft, mouseX, mouseY)
                     }
                     y += ROW_HEIGHT
                 }
@@ -349,6 +388,38 @@ class PeachSojuScreen : Screen(Component.literal("PeachSoju")) {
         }
     }
 
+    private fun drawTextField(graphics: GuiGraphics, textField: GuiElement.TextField, x: Int, y: Int, width: Int, mouseX: Int, mouseY: Int) {
+        val indent = textField.indent * 12
+        val isActive = activeTextField == textField
+
+        graphics.drawString(font, textField.name, x + 5 + indent, y + 6, TEXT_DARK, false)
+
+        val fieldX = x + width - 80
+        val fieldY = y + 3
+        val fieldW = 50
+        val fieldH = 16
+
+        val hover = mouseX >= fieldX && mouseX <= fieldX + fieldW && mouseY >= fieldY && mouseY <= fieldY + fieldH
+
+        val borderColor = if (isActive) PEACH_MEDIUM else PEACH_DARK
+        val bgColor = if (isActive) 0xFFFFFFFF.toInt() else if (hover) 0xFFF5F5F5.toInt() else 0xFFE8E8E8.toInt()
+
+        graphics.fill(fieldX - 1, fieldY - 1, fieldX + fieldW + 1, fieldY + fieldH + 1, borderColor)
+        graphics.fill(fieldX, fieldY, fieldX + fieldW, fieldY + fieldH, bgColor)
+
+        val currentText = textFieldValues[textField.id] ?: String.format("%.2f", textField.getter())
+        val displayText = if (isActive) currentText + "§7|" else currentText
+
+        val textX = fieldX + 4
+        graphics.drawString(font, displayText, textX, fieldY + 4, TEXT_DARK, false)
+
+        graphics.drawString(font, textField.suffix, fieldX + fieldW + 5, y + 6, TEXT_GRAY, false)
+
+        if (hover && textField.description.isNotEmpty()) {
+            tooltipToDraw = Triple(mouseX, mouseY, textField.description)
+        }
+    }
+
     private fun drawBlockPicker(graphics: GuiGraphics, picker: GuiElement.BlockPicker, x: Int, y: Int, width: Int, mouseX: Int, mouseY: Int) {
         val labelText = "Selected Block:"
         val currentBlock = FMBlocksEditMode.currentBlockState.block
@@ -386,6 +457,7 @@ class PeachSojuScreen : Screen(Component.literal("PeachSoju")) {
                 is GuiElement.Toggle -> ROW_HEIGHT
                 is GuiElement.Button -> ROW_HEIGHT
                 is GuiElement.Slider -> ROW_HEIGHT
+                is GuiElement.TextField -> ROW_HEIGHT
                 is GuiElement.BlockPicker -> ROW_HEIGHT + 24
                 is GuiElement.Spacer -> 10
             }
@@ -483,6 +555,9 @@ class PeachSojuScreen : Screen(Component.literal("PeachSoju")) {
         val contentBottom = guiTop + GUI_HEIGHT - FOOTER_HEIGHT - PADDING
 
         if (mouseX < contentLeft || mouseX > contentRight || mouseY < contentTop || mouseY > contentBottom) {
+            if (activeTextField != null) {
+                commitTextField()
+            }
             return super.mouseClicked(event, bl)
         }
 
@@ -495,6 +570,7 @@ class PeachSojuScreen : Screen(Component.literal("PeachSoju")) {
                 is GuiElement.Toggle -> ROW_HEIGHT
                 is GuiElement.Button -> ROW_HEIGHT
                 is GuiElement.Slider -> ROW_HEIGHT
+                is GuiElement.TextField -> ROW_HEIGHT
                 is GuiElement.BlockPicker -> ROW_HEIGHT + 24
                 is GuiElement.Spacer -> 10
             }
@@ -502,6 +578,7 @@ class PeachSojuScreen : Screen(Component.literal("PeachSoju")) {
             if (mouseY >= y && mouseY < y + elementHeight) {
                 when (element) {
                     is GuiElement.SectionHeader -> {
+                        commitTextField()
                         element.toggle()
                         playClickSound()
                         return true
@@ -510,6 +587,7 @@ class PeachSojuScreen : Screen(Component.literal("PeachSoju")) {
                         val toggleX = contentRight - TOGGLE_WIDTH - 5
                         val toggleY = y + 3
                         if (mouseX >= toggleX && mouseX <= toggleX + TOGGLE_WIDTH && mouseY >= toggleY && mouseY <= toggleY + TOGGLE_HEIGHT) {
+                            commitTextField()
                             element.toggler()
                             playClickSound()
                             return true
@@ -521,6 +599,7 @@ class PeachSojuScreen : Screen(Component.literal("PeachSoju")) {
                         val buttonY = y + 2
                         val buttonH = ROW_HEIGHT - 4
                         if (mouseX >= buttonX && mouseX <= buttonX + buttonW && mouseY >= buttonY && mouseY <= buttonY + buttonH) {
+                            commitTextField()
                             element.action()
                             playClickSound()
                             return true
@@ -532,11 +611,31 @@ class PeachSojuScreen : Screen(Component.literal("PeachSoju")) {
                         val sliderY = y + 7
                         val sliderH = 8
                         if (mouseX >= sliderX && mouseX <= sliderX + sliderW && mouseY >= sliderY - 2 && mouseY <= sliderY + sliderH + 2) {
+                            commitTextField()
                             draggingSlider = element
                             val progress = ((mouseX - sliderX).toDouble() / sliderW).coerceIn(0.0, 1.0)
                             val newValue = element.min + (progress * (element.max - element.min))
                             element.setter(newValue)
                             return true
+                        }
+                    }
+                    is GuiElement.TextField -> {
+                        val fieldX = contentLeft + (contentRight - contentLeft) - 80
+                        val fieldY = y + 3
+                        val fieldW = 50
+                        val fieldH = 16
+                        if (mouseX >= fieldX && mouseX <= fieldX + fieldW && mouseY >= fieldY && mouseY <= fieldY + fieldH) {
+                            if (activeTextField != null && activeTextField != element) {
+                                commitTextField()
+                            }
+                            activeTextField = element
+                            if (!textFieldValues.containsKey(element.id)) {
+                                textFieldValues[element.id] = String.format("%.2f", element.getter())
+                            }
+                            playClickSound()
+                            return true
+                        } else if (activeTextField == element) {
+                            commitTextField()
                         }
                     }
                     is GuiElement.BlockPicker -> {
@@ -545,6 +644,7 @@ class PeachSojuScreen : Screen(Component.literal("PeachSoju")) {
                         val searchW = (contentRight - contentLeft) - 10
                         val searchH = 18
                         if (mouseX >= searchX && mouseX <= searchX + searchW && mouseY >= searchY && mouseY <= searchY + searchH) {
+                            commitTextField()
                             blockSearchActive = true
                             blockDropdownOpen = true
                             playClickSound()
@@ -558,8 +658,27 @@ class PeachSojuScreen : Screen(Component.literal("PeachSoju")) {
             y += elementHeight
         }
 
+        if (activeTextField != null) {
+            commitTextField()
+        }
         blockSearchActive = false
         return super.mouseClicked(event, bl)
+    }
+
+    private fun commitTextField() {
+        val field = activeTextField ?: return
+        val text = textFieldValues[field.id] ?: return
+
+        val value = text.toDoubleOrNull()
+        if (value != null) {
+            val clampedValue = value.coerceIn(field.min, field.max)
+            field.setter(clampedValue)
+            textFieldValues[field.id] = String.format("%.2f", clampedValue)
+        } else {
+            textFieldValues[field.id] = String.format("%.2f", field.getter())
+        }
+
+        activeTextField = null
     }
 
     override fun mouseReleased(event: MouseButtonEvent): Boolean {
@@ -599,6 +718,7 @@ class PeachSojuScreen : Screen(Component.literal("PeachSoju")) {
                 is GuiElement.Toggle -> ROW_HEIGHT
                 is GuiElement.Button -> ROW_HEIGHT
                 is GuiElement.Slider -> ROW_HEIGHT
+                is GuiElement.TextField -> ROW_HEIGHT
                 is GuiElement.BlockPicker -> ROW_HEIGHT + 24
                 is GuiElement.Spacer -> 10
             }
@@ -646,12 +766,40 @@ class PeachSojuScreen : Screen(Component.literal("PeachSoju")) {
 
     override fun keyPressed(event: net.minecraft.client.input.KeyEvent): Boolean {
         if (event.key() == 256) {
+            if (activeTextField != null) {
+                commitTextField()
+                return true
+            }
             if (blockDropdownOpen) {
                 blockDropdownOpen = false
                 blockSearchActive = false
                 return true
             }
             onClose()
+            return true
+        }
+
+        if (activeTextField != null) {
+            val field = activeTextField!!
+            val keyCode = event.key()
+
+            when {
+                keyCode == 259 -> {
+                    val current = textFieldValues[field.id] ?: ""
+                    if (current.isNotEmpty()) {
+                        textFieldValues[field.id] = current.dropLast(1)
+                    }
+                    return true
+                }
+                keyCode == 257 || keyCode == 335 -> {
+                    commitTextField()
+                    return true
+                }
+                keyCode == 258 -> {
+                    commitTextField()
+                    return true
+                }
+            }
             return true
         }
 
@@ -690,6 +838,32 @@ class PeachSojuScreen : Screen(Component.literal("PeachSoju")) {
     }
 
     override fun charTyped(event: net.minecraft.client.input.CharacterEvent): Boolean {
+        if (activeTextField != null) {
+            val field = activeTextField!!
+            val codepoint = event.codepoint()
+            val char = codepoint.toChar()
+
+            if (char.isDigit() || char == '.' || char == '-') {
+                val current = textFieldValues[field.id] ?: ""
+
+                val newText = current + char
+
+                if (char == '.' && current.contains('.')) {
+                    return true
+                }
+
+                if (char == '-' && current.isNotEmpty()) {
+                    return true
+                }
+
+                if (newText.length <= 8) {
+                    textFieldValues[field.id] = newText
+                }
+                return true
+            }
+            return true
+        }
+
         if (blockSearchActive) {
             val codepoint = event.codepoint()
             val char = codepoint.toChar()

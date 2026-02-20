@@ -22,6 +22,7 @@ import net.minecraft.network.protocol.game.ClientboundPlayerPositionPacket
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.phys.HitResult
 import net.minecraft.world.phys.Vec3
+import us.filthycheaters.legitcatsex.utils.SilentSwap
 import kotlin.math.floor
 
 object Autoroutes {
@@ -148,6 +149,11 @@ object Autoroutes {
         if (RouteState.awaitingSecretConfirmation) {
             val node = RouteState.pendingAwaitNode
             if (node?.type == WPType.ETHER && !SneakHandler.isSneaking()) SneakHandler.setSneak(true)
+            if (SilentSwap.isSilent()) {
+                RouteUtils.debug("§eWaiting for SilentSwap to finish...")
+                RouteState.previousPosition = player.position()
+                return
+            }
             RouteState.secretConfirmationTicks--
             RouteUtils.debug("§eWaiting for SecretAura... ${RouteState.secretConfirmationTicks} ticks")
             if (RouteState.secretConfirmationTicks <= 0) {
@@ -413,7 +419,6 @@ object Autoroutes {
                     else if (node.type == WPType.AOTV) { RouteUtils.debug("§eAOTV await node - releasing sneak"); SneakHandler.releaseSneak() }
                     RouteState.awaitingSecrets = node.awaitSecret
                     RouteState.pendingNodeIndex = index
-                    SecretListener.checkBufferedItems()
                     RouteState.unlock()
                 }
             }
@@ -435,7 +440,6 @@ object Autoroutes {
                 else if (node.type == WPType.AOTV) { RouteUtils.debug("§eAOTV await node - releasing sneak"); SneakHandler.releaseSneak() }
                 RouteState.awaitingSecrets = node.awaitSecret
                 RouteState.pendingNodeIndex = index
-                SecretListener.checkBufferedItems()
                 RouteState.unlock()
             }
             else -> doNodeAction(node, index, room)

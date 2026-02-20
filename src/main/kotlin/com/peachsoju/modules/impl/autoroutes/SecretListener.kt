@@ -48,7 +48,7 @@ object SecretListener {
                     RouteUtils.debug("§a§lAll secrets collected! going immediately")
 
                     RouteState.awaitingSecretConfirmation = true
-                    RouteState.secretConfirmationTicks = 3
+                    RouteState.secretConfirmationTicks = 0
                     RouteState.pendingAwaitNode = node
                     RouteState.pendingAwaitNodeIndex = index
                     RouteState.pendingAwaitNodeRoom = room

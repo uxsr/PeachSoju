@@ -59,7 +59,10 @@ object RouteUtils {
         return if (result.type == HitResult.Type.BLOCK) result as? BlockHitResult else null
     }
 
-    fun debug(msg: String) { if (config.debug()) mc.player?.displayClientMessage(Component.literal("§7[AR] $msg"), false) }
+    @JvmStatic
+    fun debug(msg: String) {
+        if (config.debug()) mc.player?.displayClientMessage(Component.literal("§7[AR] $msg"), false)
+    }
     fun extraDebug(msg: String) { if (config.extraDebug()) mc.player?.displayClientMessage(Component.literal("§7[DEV] $msg"), false) }
 
     private fun Rotations.toDegrees(): Float = when (this) {

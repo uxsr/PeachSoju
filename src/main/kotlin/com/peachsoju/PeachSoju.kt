@@ -3,6 +3,7 @@ package com.peachsoju
 import com.peachsoju.eventbus.EventBus
 import com.peachsoju.gui.commands.PeachSojuCommand
 import com.peachsoju.gui.commands.RotateCommand
+//import com.peachsoju.handlers.StormBowCommand
 import com.peachsoju.modules.impl.autoicefill.AutoIceFill
 import com.peachsoju.utils.handlers.RenderBatchManager
 import com.peachsoju.utils.handlers.RightClickHandler
@@ -18,6 +19,7 @@ import com.peachsoju.modules.impl.autoss.AutoSS
 import com.peachsoju.modules.impl.fmblocks.FMBlocksCommands
 import com.peachsoju.modules.impl.fmblocks.FMBlocksEditMode
 import com.peachsoju.modules.impl.fmblocks.FMBlocksManager
+import com.peachsoju.modules.impl.stormbow.StormBowTimer
 import net.fabricmc.api.ModInitializer
 import net.minecraft.client.Minecraft
 import org.slf4j.LoggerFactory
@@ -33,6 +35,7 @@ object PeachSoju : ModInitializer {
 		PeachSojuCommand.register()
 		RotateCommand.register()
 		FMBlocksCommands.register()
+//		StormBowCommand.register()
 //		AutoSSCommand.register()
 		eventBus.register(AutoIceFill)
 		eventBus.register(FMBlocksManager)
@@ -46,6 +49,7 @@ object PeachSoju : ModInitializer {
 		eventBus.register(RightClickHandler)
 		eventBus.register(SneakHandler)
 		eventBus.register(AutoSS)
+		eventBus.register(StormBowTimer)
 //		eventBus.register(AutoClose)
 //		eventBus.register(SecretAura)
 	}
