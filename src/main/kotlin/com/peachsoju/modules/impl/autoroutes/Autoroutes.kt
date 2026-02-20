@@ -230,6 +230,7 @@ object Autoroutes {
         RouteUtils.debug("§aTeleport received. Node #$idx complete")
 
         RouteState.nodeCooldowns[idx] = System.currentTimeMillis()
+        RouteState.pendingTeleportNodes.remove(idx)
         RouteState.actionLockedNodes.remove(idx)
         RouteState.actionLockTimes.remove(idx)
         SneakHandler.clearCallbacks()
@@ -247,6 +248,16 @@ object Autoroutes {
         for ((nodeIndex, node) in RouteState.nodeList.withIndex()) {
             val lastTrigger = RouteState.nodeCooldowns[nodeIndex]
             if (lastTrigger != null && now - lastTrigger < nodeCooldownMs) continue
+
+            val pendingTime = RouteState.pendingTeleportNodes[nodeIndex]
+            if (pendingTime != null) {
+                if (now - pendingTime < RouteState.TELEPORT_CONFIRMATION_TIMEOUT_MS) {
+                    continue
+                } else {
+                    RouteState.pendingTeleportNodes.remove(nodeIndex)
+                    RouteUtils.debug("§e[Retry] Node #$nodeIndex teleport timed out, allowing retry")
+                }
+            }
 
             if (nodeIndex in RouteState.actionLockedNodes) {
                 val lockTime = RouteState.actionLockTimes[nodeIndex] ?: 0L
@@ -282,6 +293,7 @@ object Autoroutes {
         DungeonBreakerListener.cancel()
         NodeManager.reloadFromDisk()
         pendingEtherwarps.clear()
+        RouteState.pendingTeleportNodes.clear()
         lastStartNode = null
     }
 
@@ -299,6 +311,16 @@ object Autoroutes {
 
             val lastTrigger = RouteState.nodeCooldowns[index]
             if (lastTrigger != null && now - lastTrigger < nodeCooldownMs) continue
+
+            val pendingTime = RouteState.pendingTeleportNodes[index]
+            if (pendingTime != null) {
+                if (now - pendingTime < RouteState.TELEPORT_CONFIRMATION_TIMEOUT_MS) {
+                    continue
+                } else {
+                    RouteState.pendingTeleportNodes.remove(index)
+                    RouteUtils.debug("§e[Retry] Node #$index teleport timed out, allowing retry")
+                }
+            }
 
             val nodeWorldPos = RouteUtils.getNodeWorldPosition(node, room)
             if (!intersectsNode(currentPos, nodeWorldPos, node.radius, node.height)) continue
@@ -460,6 +482,7 @@ object Autoroutes {
             val chain = BurstMode.findBurstChain(node, index, RouteState.nodeList, room)
             if (chain.nodes.size > 1) {
                 RouteUtils.debug("§6[Burst] Executing ${chain.nodes.size}-node ETHER chain from #$index")
+                RouteState.pendingTeleportNodes[index] = System.currentTimeMillis()
                 BurstMode.executeBurstChain(chain, room)
                 return
             }
@@ -470,10 +493,17 @@ object Autoroutes {
             val chain = BurstMode.findAotvBurstChain(node, index, RouteState.nodeList)
             if (chain.nodes.size > 1) {
                 RouteUtils.debug("§6[AOTV Burst] Executing ${chain.nodes.size}-node AOTV chain from #$index")
+                RouteState.pendingTeleportNodes[index] = System.currentTimeMillis()
                 BurstMode.executeAotvBurstChain(chain, room)
                 return
             }
             RouteUtils.debug("§7[AOTV Burst] Single AOTV node, using normal execution")
+        }
+
+        if (node.type == WPType.ETHER || node.type == WPType.AOTV || node.type == WPType.HYPE) {
+            RouteState.waitingForTeleport = true
+            RouteState.awaitingTeleportNodeIndex = index
+            RouteState.pendingTeleportNodes[index] = System.currentTimeMillis()
         }
 
         when (node.type) {

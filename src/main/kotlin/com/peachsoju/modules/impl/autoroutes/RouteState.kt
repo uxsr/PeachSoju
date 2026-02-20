@@ -33,6 +33,8 @@ object RouteState {
     val nodeCooldowns = mutableMapOf<Int, Long>()
     val actionLockedNodes = mutableSetOf<Int>()
     val actionLockTimes = mutableMapOf<Int, Long>()
+    val pendingTeleportNodes = mutableMapOf<Int, Long>()
+    const val TELEPORT_CONFIRMATION_TIMEOUT_MS = 300L
 
     fun reset() {
         consumed = 0
@@ -53,6 +55,7 @@ object RouteState {
         nodeCooldowns.clear()
         actionLockedNodes.clear()
         actionLockTimes.clear()
+        pendingTeleportNodes.clear()
     }
 
     fun fullReset() {
