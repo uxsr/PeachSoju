@@ -27,6 +27,7 @@ import java.lang.reflect.Type
 import com.peachsoju.utils.handlers.drawLine
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.level.block.Blocks
+import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.floor
 
@@ -54,6 +55,10 @@ object AutoIceFill {
     private var waitingForStairDelay = false
     private var stairDelayTicks = 0
 
+    private var currentFloorY: Double = 0.0
+    private var consecutiveFailures = 0
+    private const val MAX_FAILURES = 10
+
     fun isAutoEnabled() = autoEnabled
 
     fun toggleAuto() {
@@ -62,7 +67,10 @@ object AutoIceFill {
         if (!autoEnabled) stopAuto()
     }
 
-    private fun stopAuto() {
+    private fun stopAuto(reason: String? = null) {
+        if (reason != null && isAutoSolving) {
+            modMessage("§c§lAuto Ice Fill STOPPED: $reason")
+        }
         isAutoSolving = false
         autoStarted = false
         waitingForIce = false
@@ -71,12 +79,53 @@ object AutoIceFill {
         waitingTicks = 0
         waitingForStairDelay = false
         stairDelayTicks = 0
+        consecutiveFailures = 0
+        currentFloorY = 0.0
+    }
+
+    private fun isInIceFill(): Boolean {
+        return DungeonUtils.currentRoomName == "Ice Fill"
+    }
+
+    private fun isOnCorrectFloor(): Boolean {
+        val player = mc.player ?: return false
+        val playerY = player.y
+
+        if (currentFloorY == 0.0) return true
+
+        val tolerance = 1.5
+        return abs(playerY - currentFloorY) <= tolerance
+    }
+
+    private fun getExpectedFloorY(): Double {
+        if (autoStepIndex >= autoPattern.size) return currentFloorY
+        return autoPattern[autoStepIndex].y
+    }
+
+    private fun validateState(): Boolean {
+        if (!isInIceFill()) {
+            stopAuto("Not in Ice Fill room")
+            return false
+        }
+
+        if (!isOnCorrectFloor()) {
+            stopAuto("Player not on correct floor (expected Y≈${currentFloorY.toInt()}, got ${mc.player?.y?.toInt()})")
+            return false
+        }
+
+        if (consecutiveFailures > MAX_FAILURES) {
+            stopAuto("Too many consecutive failures ($consecutiveFailures)")
+            return false
+        }
+
+        return true
     }
 
     @SubscribeEvent
     fun onTick(event: TickEvent.Start) {
         if (!autoEnabled || autoStarted || autoPattern.isEmpty()) return
-        if (DungeonUtils.currentRoomName != "Ice Fill") return
+
+        if (!isInIceFill()) return
 
         val player = mc.player ?: return
         val px = player.blockPosition().x
@@ -98,6 +147,8 @@ object AutoIceFill {
                 waitingForIce = false
                 waitingTicks = 0
                 expectedIcePos = null
+                consecutiveFailures = 0
+                currentFloorY = wp.y
                 modMessage("§aAuto triggered at block $i — next step ${i + 1}/${autoPattern.size}")
                 sendNextClick()
                 return
@@ -107,16 +158,21 @@ object AutoIceFill {
 
     @SubscribeEvent
     fun onTickTimeout(event: TickEvent.End) {
+        if (isAutoSolving && !validateState()) return
+
         if (waitingForStairDelay) {
             stairDelayTicks--
             if (stairDelayTicks <= 0) {
                 waitingForStairDelay = false
-                sendNextClick()
+                if (validateState()) {
+                    sendNextClick()
+                }
             }
             return
         }
 
         if (!isAutoSolving || !waitingForIce) return
+
         waitingTicks++
         if (waitingTicks >= 5) {
             val player = mc.player ?: return
@@ -128,28 +184,55 @@ object AutoIceFill {
                 modMessage("§eExpected ice at $expectedBlock, found: $actualBlock")
                 val movedCorrectly = playerBlock.x == expectedBlock.x && playerBlock.z == expectedBlock.z
                 if (!movedCorrectly) {
-                    modMessage("§eExpected: $expectedBlock, Got: $playerBlock")
+                    consecutiveFailures++
+                    modMessage("§eExpected: $expectedBlock, Got: $playerBlock (failure #$consecutiveFailures)")
+
+                    if (consecutiveFailures > MAX_FAILURES) {
+                        stopAuto("Block placement failed $consecutiveFailures times")
+                        return
+                    }
+
                     modMessage("§ePlayer didn't move, retrying step ${autoStepIndex}/${autoPattern.size}")
                     autoStepIndex--
                     waitingForIce = false
                     waitingTicks = 0
                     expectedIcePos = null
-                    sendNextClick()
+
+                    if (validateState()) {
+                        sendNextClick()
+                    }
                     return
                 }
             }
 
-            modMessage("§eNo ice update after 5 ticks, forcing next step")
+            consecutiveFailures++
+            if (consecutiveFailures > MAX_FAILURES) {
+                stopAuto("No ice update after multiple attempts")
+                return
+            }
+
+            modMessage("§eNo ice update after 5 ticks, forcing next step (failure #$consecutiveFailures)")
             waitingForIce = false
             waitingTicks = 0
             expectedIcePos = null
-            sendNextClick()
+
+            if (validateState()) {
+                sendNextClick()
+            }
         }
     }
 
     @SubscribeEvent
     fun onRoomEnter(event: RoomEnterEvent) = with(event.room) {
-        if (this?.data?.name != "Ice Fill" || currentPatterns.isNotEmpty()) return@with
+        if (this?.data?.name != "Ice Fill") {
+            if (isAutoSolving) {
+                stopAuto("Left Ice Fill room")
+            }
+            return@with
+        }
+
+        if (currentPatterns.isNotEmpty()) return@with
+
         val patterns = iceFillFloors.easy
 
         repeat(3) { index ->
@@ -221,9 +304,11 @@ object AutoIceFill {
     }
 
     private fun sendNextClick() {
+        if (!validateState()) return
+
         if (autoStepIndex >= autoPattern.size) {
             modMessage("§aIce Fill complete!")
-            isAutoSolving = false
+            stopAuto()
             return
         }
 
@@ -231,6 +316,8 @@ object AutoIceFill {
         val from = if (autoStepIndex > 0) autoPattern[autoStepIndex - 1] else target
         val yaw = calculateYaw(from, target)
         val isStairStep = target.y == 70.6 || target.y == 71.6
+
+        currentFloorY = target.y
 
         if (isStairStep) {
             expectedIcePos = null
@@ -267,8 +354,13 @@ object AutoIceFill {
     @SubscribeEvent
     fun onBlockUpdate(event: BlockUpdateEvent) {
         if (!isAutoSolving || !waitingForIce) return
+
+        if (!validateState()) return
+
         if (event.blockState.block != Blocks.PACKED_ICE) return
         if (event.pos != expectedIcePos) return
+
+        consecutiveFailures = 0
 
         waitingForIce = false
         waitingTicks = 0
@@ -296,7 +388,7 @@ object AutoIceFill {
     @SubscribeEvent
     fun onRender(event: RenderEvent.Extract) {
         if (!enabled || currentPatterns.isEmpty()) return
-        if (DungeonUtils.currentRoomName != "Ice Fill") return
+        if (!isInIceFill()) return
         event.drawLine(currentPatterns, LINE_COLOR, depth = false, thickness = 2f)
     }
 
@@ -306,46 +398,9 @@ object AutoIceFill {
     fun reset() {
         currentPatterns.clear()
         autoPattern = emptyList()
-        isAutoSolving = false
-        autoStarted = false
-        autoStepIndex = 0
-        waitingForIce = false
-        expectedIcePos = null
-        waitingTicks = 0
+        stopAuto()
         modMessage("§7Ice Fill reset")
-        waitingForStairDelay = false
-        stairDelayTicks = 0
-
     }
-
-//    fun debugRoomInfo() {
-//        val room = DungeonUtils.currentRoom
-//        modMessage("§7inDungeons: §e${DungeonUtils.inDungeons}")
-//        modMessage("§7currentRoom: §e${room?.data?.name ?: "null"}")
-//        modMessage("§7roomType: §e${room?.data?.type ?: "null"}")
-//        modMessage("§7clayPos: §e${room?.clayPos ?: "null"} §7rotation: §e${room?.rotation ?: "null"}")
-//        modMessage("§7pattern loaded: §e${currentPatterns.isNotEmpty()} (${currentPatterns.size} pts)")
-//        modMessage("§7autoPattern: §e${autoPattern.size} pts")
-//        modMessage("§7json floors loaded: §e${iceFillFloors.identifier.size}")
-//        modMessage("§7autoEnabled: §e$autoEnabled §7autoStarted: §e$autoStarted")
-//    }
-//
-//    fun debugForceEnter() {
-//        val room = DungeonUtils.currentRoom
-//        if (room == null) { modMessage("§cNo current room"); return }
-//        modMessage("§7Force entering: §e${room.data.name}")
-//        currentPatterns.clear()
-//        autoPattern = emptyList()
-//        onRoomEnter(RoomEnterEvent(room))
-//    }
-//
-//    fun debugDumpPattern() {
-//        if (currentPatterns.isEmpty()) { modMessage("§cNo pattern loaded"); return }
-//        modMessage("§7${currentPatterns.size} waypoints:")
-//        currentPatterns.forEachIndexed { i, pos ->
-//            modMessage("§7[$i] §e${"%.1f".format(pos.x)}, ${"%.1f".format(pos.y)}, ${"%.1f".format(pos.z)}")
-//        }
-//    }
 
     private fun Room.isRealAir(pos: BlockPos): Boolean =
         mc.level?.getBlockState(getRealCoords(pos))?.isAir == true

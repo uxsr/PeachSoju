@@ -131,7 +131,7 @@ object SecretListener {
         val now = System.currentTimeMillis()
         recentItemPickups.removeIf { now - it.first > ITEM_BUFFER_MS }
         if (recentItemPickups.isNotEmpty()) {
-            RouteUtils.debug("§e[Secret] Found ${recentItemPickups.size} buffered item pickup(s)")
+            RouteUtils.extraDebug("§e[Secret] Found ${recentItemPickups.size} buffered item pickup(s)")
             val pickup = recentItemPickups.removeFirst()
             onSecretFound(pickup.second, "item")
         }
