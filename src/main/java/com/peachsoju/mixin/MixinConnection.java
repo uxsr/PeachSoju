@@ -3,10 +3,12 @@ package com.peachsoju.mixin;
 import com.peachsoju.PeachSoju;
 import com.peachsoju.eventbus.EventBus;
 import com.peachsoju.eventbus.events.PacketEvent;
+import com.peachsoju.modules.impl.stormbow.StormBowTimer;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.common.ClientboundPingPacket;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -29,5 +31,19 @@ public abstract class MixinConnection {
             EventBus bus = PeachSoju.INSTANCE.getEventBus();
             if (bus.post(new PacketEvent.Send(packet))) ci.cancel();
         } catch (Exception ignored) {}
+    }
+
+    @Inject(
+            method = "channelRead0(Lio/netty/channel/ChannelHandlerContext;Lnet/minecraft/network/protocol/Packet;)V",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/network/Connection;genericsFtw(Lnet/minecraft/network/protocol/Packet;Lnet/minecraft/network/PacketListener;)V"
+            )
+    )
+    private void onPacketReceive(ChannelHandlerContext context, Packet<?> packet, CallbackInfo ci) {
+        if (packet instanceof ClientboundPingPacket pingPacket) {
+            if (pingPacket.getId() == 0) return;
+            StormBowTimer.INSTANCE.onServerTick();
+        }
     }
 }

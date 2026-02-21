@@ -22,13 +22,11 @@
 //                        Command.SINGLE_SUCCESS
 //                    }
 //                    .then(ClientCommandManager.literal("start").executes { ctx ->
-//                        // Directly start the timer for testing
 //                        StormBowTimer.forceStart()
 //                        ctx.source.sendFeedback(Component.literal("§aTimer started (test mode)"))
 //                        Command.SINGLE_SUCCESS
 //                    })
 //                    .then(ClientCommandManager.literal("stop").executes { ctx ->
-//                        // Directly stop the timer
 //                        StormBowTimer.forceStop()
 //                        ctx.source.sendFeedback(Component.literal("§eTimer stopped"))
 //                        Command.SINGLE_SUCCESS

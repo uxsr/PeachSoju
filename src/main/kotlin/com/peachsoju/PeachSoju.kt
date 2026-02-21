@@ -5,7 +5,7 @@ import com.peachsoju.gui.commands.PeachSojuCommand
 import com.peachsoju.gui.commands.RotateCommand
 import com.peachsoju.modules.impl.autoalign.AutoAlign
 //import com.peachsoju.modules.impl.autoalign.AutoAlignCommand
-//import com.peachsoju.handlers.StormBowCommand
+//import com.peachsoju.modules.impl.stormbow.StormBowCommand
 import com.peachsoju.modules.impl.autoicefill.AutoIceFill
 import com.peachsoju.utils.handlers.RenderBatchManager
 import com.peachsoju.utils.handlers.RightClickHandler
