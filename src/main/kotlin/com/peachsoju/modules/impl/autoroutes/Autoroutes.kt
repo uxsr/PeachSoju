@@ -597,16 +597,19 @@ object Autoroutes {
     }
 
     private fun doHypeClick(yaw: Float, pitch: Float, releaseSneak: Boolean = false) {
-        val result = RouteUtils.swapToItem("Hyperion").let { first ->
-            if (first != SwapResult.FAIL) first else RouteUtils.swapToItem("Spirit Sceptre")
+        val witherBlades = listOf("Hyperion", "Scylla", "Astrea", "Valkyrie")
+        val result = witherBlades.firstNotNullOfOrNull { blade ->
+            RouteUtils.swapToItem(blade).takeIf { it != SwapResult.FAIL }
         }
-        if (result == SwapResult.FAIL) {
-            RouteUtils.debug("§c  Failed to swap to Hyperion or Spirit Scepter")
+
+        if (result == null) {
+            RouteUtils.debug("§c  No wither blade found")
             SneakHandler.releaseSneak()
             RouteState.unlock()
             RouteState.waitingForTeleport = false
             return
         }
+
         RightClickHandler.doPacketInteract(InteractionHand.MAIN_HAND, yaw, pitch)
 
         if (releaseSneak) {
