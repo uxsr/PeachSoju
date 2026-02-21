@@ -229,6 +229,8 @@ object Autoroutes {
         val idx = RouteState.awaitingTeleportNodeIndex
         RouteUtils.debug("§aTeleport received. Node #$idx complete")
 
+        BurstMode.resetExecutingState()
+
         RouteState.nodeCooldowns[idx] = System.currentTimeMillis()
         RouteState.pendingTeleportNodes.remove(idx)
         RouteState.actionLockedNodes.remove(idx)
@@ -246,6 +248,9 @@ object Autoroutes {
         val now = System.currentTimeMillis()
 
         for ((nodeIndex, node) in RouteState.nodeList.withIndex()) {
+            if (DungeonBreakerListener.isAwaitingDb() && DungeonBreakerListener.getAwaitingNodeIndex() == nodeIndex) {
+                continue
+            }
             val lastTrigger = RouteState.nodeCooldowns[nodeIndex]
             if (lastTrigger != null && now - lastTrigger < nodeCooldownMs) continue
 
@@ -294,6 +299,7 @@ object Autoroutes {
         NodeManager.reloadFromDisk()
         pendingEtherwarps.clear()
         RouteState.pendingTeleportNodes.clear()
+        BurstMode.resetExecutingState()
         lastStartNode = null
     }
 
@@ -301,6 +307,11 @@ object Autoroutes {
         val now = System.currentTimeMillis()
 
         for ((index, node) in RouteState.nodeList.withIndex()) {
+
+            if (DungeonBreakerListener.isAwaitingDb() && DungeonBreakerListener.getAwaitingNodeIndex() == index) {
+                continue
+            }
+
             if (index in RouteState.actionLockedNodes) {
                 val lockTime = RouteState.actionLockTimes[index] ?: 0L
                 val timeout = RouteState.getActionLockTimeout(node.type, node)

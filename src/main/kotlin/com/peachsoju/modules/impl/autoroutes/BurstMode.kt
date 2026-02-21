@@ -118,7 +118,7 @@ object BurstMode {
     ): BurstChain {
         if (!enabled) return BurstChain(listOf(startNode), listOf(startIndex))
 
-        RouteUtils.extraDebug("§e[Burst] Starting chain from node #$startIndex (skipFirstChecks=$skipFirstNodeChecks)")
+        RouteUtils.debug("§e[Burst] Starting chain from node #$startIndex (skipFirstChecks=$skipFirstNodeChecks)")
 
         val chain = mutableListOf<WaypointNode>()
         val indices = mutableListOf<Int>()
@@ -128,36 +128,36 @@ object BurstMode {
         var currentIndex = startIndex
 
         for (iteration in 0 until allNodes.size) {
-            if (!visited.add(currentIndex)) { RouteUtils.extraDebug("§c[Burst] Stop: node #$currentIndex already visited (loop detected)"); break }
+            if (!visited.add(currentIndex)) { RouteUtils.debug("§c[Burst] Stop: node #$currentIndex already visited (loop detected)"); break }
             val isFirstNode = chain.isEmpty()
 
-            if (currentNode.type != WPType.ETHER) { RouteUtils.extraDebug("§e[Burst] Stop: non-ETHER node (type=${currentNode.type})"); break }
-            if (!(isFirstNode && skipFirstNodeChecks) && currentNode.awaitSecret > 0) { RouteUtils.extraDebug("§e[Burst] Stop: await secret (${currentNode.awaitSecret})"); break }
-            if (!(isFirstNode && skipFirstNodeChecks) && currentNode.awaitBat) { RouteUtils.extraDebug("§e[Burst] Stop: await bat"); break }
-            if (!(isFirstNode && skipFirstNodeChecks) && currentNode.awaitDb) { RouteUtils.extraDebug("§e[Burst] Stop: await db"); break }
-            if (!(isFirstNode && skipFirstNodeChecks) && currentNode.delay > 0) { RouteUtils.extraDebug("§e[Burst] Stop: delay (${currentNode.delay} ticks)"); break }
+            if (currentNode.type != WPType.ETHER) { RouteUtils.debug("§e[Burst] Stop: non-ETHER node (type=${currentNode.type})"); break }
+            if (!(isFirstNode && skipFirstNodeChecks) && currentNode.awaitSecret > 0) { RouteUtils.debug("§e[Burst] Stop: await secret (${currentNode.awaitSecret})"); break }
+            if (!(isFirstNode && skipFirstNodeChecks) && currentNode.awaitBat) { RouteUtils.debug("§e[Burst] Stop: await bat"); break }
+            if (!(isFirstNode && skipFirstNodeChecks) && currentNode.awaitDb) { RouteUtils.debug("§e[Burst] Stop: await db"); break }
+            if (!(isFirstNode && skipFirstNodeChecks) && currentNode.delay > 0) { RouteUtils.debug("§e[Burst] Stop: delay (${currentNode.delay} ticks)"); break }
 
             chain.add(currentNode); indices.add(currentIndex)
-            RouteUtils.extraDebug("§a[Burst] Added node #$currentIndex to chain (total: ${chain.size})")
+            RouteUtils.debug("§a[Burst] Added node #$currentIndex to chain (total: ${chain.size})")
 
             val nodeWorldPos = RouteUtils.getNodeWorldPosition(currentNode, room)
             val landingPos = predictEtherwarpLanding(currentNode, nodeWorldPos, room) ?: run {
-                RouteUtils.extraDebug("§c[Burst] Stop: couldn't predict landing"); break
+                RouteUtils.debug("§c[Burst] Stop: couldn't predict landing"); break
             }
 
-            RouteUtils.extraDebug("§b[Burst] Predicted landing block: ${landingPos.x}, ${landingPos.y}, ${landingPos.z}")
+            RouteUtils.debug("§b[Burst] Predicted landing block: ${landingPos.x}, ${landingPos.y}, ${landingPos.z}")
 
             val next = findNodeAtPosition(landingPos, allNodes, room, visited) ?: run {
-                RouteUtils.extraDebug("§e[Burst] Stop: no matching node found at landing position"); break
+                RouteUtils.debug("§e[Burst] Stop: no matching node found at landing position"); break
             }
 
-            RouteUtils.extraDebug("§a[Burst] Found next node #${next.second} at landing")
+            RouteUtils.debug("§a[Burst] Found next node #${next.second} at landing")
 
             currentNode = next.first
             currentIndex = next.second
         }
 
-        RouteUtils.extraDebug("§a[Burst] Chain complete: ${chain.size} node(s)")
+        RouteUtils.debug("§a[Burst] Chain complete: ${chain.size} node(s)")
         return BurstChain(chain, indices)
     }
 
@@ -165,10 +165,10 @@ object BurstMode {
         if (chain.nodes.isEmpty()) return
         executingBurst = true
 
-        RouteUtils.extraDebug("§6§l[Burst] Executing ${chain.nodes.size} nodes")
+        RouteUtils.debug("§6§l[Burst] Executing ${chain.nodes.size} nodes")
         val now = System.currentTimeMillis()
         chain.indices.forEach { idx ->
-            RouteUtils.extraDebug("§c[Burst Cooldown] Setting cooldown for nodes: ${chain.indices}")
+            RouteUtils.debug("§c[Burst Cooldown] Setting cooldown for nodes: ${chain.indices}")
             RouteState.nodeCooldowns[idx] = now
         }
 
@@ -185,28 +185,28 @@ object BurstMode {
 
         val shouldReleaseSneak = landingNode?.type == WPType.AOTV
 
-        RouteUtils.extraDebug("§e[Burst] Landing node type: ${landingNode?.type}, shouldReleaseSneak: $shouldReleaseSneak")
+        RouteUtils.debug("§e[Burst] Landing node type: ${landingNode?.type}, shouldReleaseSneak: $shouldReleaseSneak")
 
         val clicks = chain.nodes.map {
             val realYaw = RouteUtils.getRealYaw(it.yaw, room)
-            RouteUtils.extraDebug("§e[Burst] Building click from node yaw=${it.yaw}, realYaw=$realYaw, pitch=${it.pitch}")
+            RouteUtils.debug("§e[Burst] Building click from node yaw=${it.yaw}, realYaw=$realYaw, pitch=${it.pitch}")
             realYaw to it.pitch
         }
 
-        RouteUtils.extraDebug("§e[Burst] About to call setSneak. isSneaking=${SneakHandler.isSneaking()}")
+        RouteUtils.debug("§e[Burst] About to call setSneak. isSneaking=${SneakHandler.isSneaking()}")
 
         SneakHandler.setSneak(true) {
-            RouteUtils.extraDebug("§a[Burst] Sneak callback fired")
+            RouteUtils.debug("§a[Burst] Sneak callback fired")
             doBurstClicks(clicks, shouldReleaseSneak)
         }
 
-        RouteUtils.extraDebug("§e[Burst] setSneak called, waiting for callback...")
+        RouteUtils.debug("§e[Burst] setSneak called, waiting for callback...")
     }
 
     private fun doBurstClicks(clicks: List<Pair<Float, Float>>, releaseSneak: Boolean = false) {
-        RouteUtils.extraDebug("§6[Burst] doBurstClicks() entered with ${clicks.size} clicks")
+        RouteUtils.debug("§6[Burst] doBurstClicks() entered with ${clicks.size} clicks")
         if (RouteUtils.swapToItem("Aspect of the Void") == SwapResult.FAIL) {
-            RouteUtils.extraDebug("§c[Burst] Failed to swap to AOTV")
+            RouteUtils.debug("§c[Burst] Failed to swap to AOTV")
             SneakHandler.releaseSneak()
             RouteState.unlock()
             RouteState.waitingForTeleport = false
@@ -214,19 +214,19 @@ object BurstMode {
             return
         }
 
-        RouteUtils.extraDebug("§a[Burst] Sending ${clicks.size} right-click packets")
+        RouteUtils.debug("§a[Burst] Sending ${clicks.size} right-click packets")
         for ((i, click) in clicks.withIndex()) {
             val (yaw, pitch) = click
-            RouteUtils.extraDebug("§7[Burst] Click #$i: yaw=${formatAngle(yaw)}, pitch=${formatAngle(pitch)}")
+            RouteUtils.debug("§7[Burst] Click #$i: yaw=${formatAngle(yaw)}, pitch=${formatAngle(pitch)}")
             RightClickHandler.doPacketInteract(InteractionHand.MAIN_HAND, yaw, pitch)
         }
 
         if (releaseSneak) {
-            RouteUtils.extraDebug("§e[Burst] Releasing sneak for AOTV landing")
+            RouteUtils.debug("§e[Burst] Releasing sneak for AOTV landing")
             SneakHandler.releaseSneak()
         }
 
-        RouteUtils.extraDebug("§a[Burst] All packets sent! Waiting for teleport...")
+        RouteUtils.debug("§a[Burst] All packets sent! Waiting for teleport...")
         executingBurst = false
     }
 
@@ -240,7 +240,7 @@ object BurstMode {
     ): BurstChain {
         if (!aotvEnabled) return BurstChain(listOf(startNode), listOf(startIndex))
 
-        RouteUtils.extraDebug("§e[AOTV Burst] Starting chain from node #$startIndex")
+        RouteUtils.debug("§e[AOTV Burst] Starting chain from node #$startIndex")
 
         val chain = mutableListOf<WaypointNode>()
         val indices = mutableListOf<Int>()
@@ -251,35 +251,35 @@ object BurstMode {
             val currentNode = allNodes[currentIndex]
 
             if (currentNode.type != WPType.AOTV) {
-                RouteUtils.extraDebug("§e[AOTV Burst] Stop: non-AOTV node (type=${currentNode.type})")
+                RouteUtils.debug("§e[AOTV Burst] Stop: non-AOTV node (type=${currentNode.type})")
                 break
             }
             if (chain.isNotEmpty() && currentNode.awaitSecret > 0) {
-                RouteUtils.extraDebug("§e[AOTV Burst] Stop: await secret (${currentNode.awaitSecret})")
+                RouteUtils.debug("§e[AOTV Burst] Stop: await secret (${currentNode.awaitSecret})")
                 break
             }
             if (chain.isNotEmpty() && currentNode.awaitBat) {
-                RouteUtils.extraDebug("§e[AOTV Burst] Stop: await bat")
+                RouteUtils.debug("§e[AOTV Burst] Stop: await bat")
                 break
             }
             if (chain.isNotEmpty() && currentNode.delay > 0) {
-                RouteUtils.extraDebug("§e[AOTV Burst] Stop: delay (${currentNode.delay} ticks)")
+                RouteUtils.debug("§e[AOTV Burst] Stop: delay (${currentNode.delay} ticks)")
                 break
             }
 
             if (chain.isNotEmpty() && currentNode.awaitDb) {
-                RouteUtils.extraDebug("§e[AOTV Burst] Stop: await db")
+                RouteUtils.debug("§e[AOTV Burst] Stop: await db")
                 break
             }
 
             chain.add(currentNode)
             indices.add(currentIndex)
-            RouteUtils.extraDebug("§a[AOTV Burst] Added node #$currentIndex to chain (total: ${chain.size})")
+            RouteUtils.debug("§a[AOTV Burst] Added node #$currentIndex to chain (total: ${chain.size})")
 
             currentIndex++
         }
 
-        RouteUtils.extraDebug("§a[AOTV Burst] Chain complete: ${chain.size} node(s)")
+        RouteUtils.debug("§a[AOTV Burst] Chain complete: ${chain.size} node(s)")
         return BurstChain(chain, indices)
     }
 
@@ -287,10 +287,10 @@ object BurstMode {
         if (chain.nodes.isEmpty()) return
         executingBurst = true
 
-        RouteUtils.extraDebug("§6§l[AOTV Burst] Executing ${chain.nodes.size} nodes")
+        RouteUtils.debug("§6§l[AOTV Burst] Executing ${chain.nodes.size} nodes")
         val now = System.currentTimeMillis()
         chain.indices.forEach { idx ->
-            RouteUtils.extraDebug("§c[AOTV Burst Cooldown] Setting cooldown for node #$idx")
+            RouteUtils.debug("§c[AOTV Burst Cooldown] Setting cooldown for node #$idx")
             RouteState.nodeCooldowns[idx] = now
         }
 
@@ -301,63 +301,63 @@ object BurstMode {
         val nextNode = RouteState.nodeList.getOrNull(lastIndex + 1)
         val shouldSneakAfter = nextNode?.type == WPType.ETHER
 
-        RouteUtils.extraDebug("§e[AOTV Burst] Next node type: ${nextNode?.type}, shouldSneakAfter: $shouldSneakAfter")
+        RouteUtils.debug("§e[AOTV Burst] Next node type: ${nextNode?.type}, shouldSneakAfter: $shouldSneakAfter")
 
         val clicks = mutableListOf<Pair<Float, Float>>()
         for (node in chain.nodes) {
             val realYaw = RouteUtils.getRealYaw(node.yaw, room)
-            RouteUtils.extraDebug("§e[AOTV Burst] Building ${node.mult} click(s) from node yaw=${node.yaw}, realYaw=$realYaw, pitch=${node.pitch}")
+            RouteUtils.debug("§e[AOTV Burst] Building ${node.mult} click(s) from node yaw=${node.yaw}, realYaw=$realYaw, pitch=${node.pitch}")
             repeat(node.mult) {
                 clicks.add(realYaw to node.pitch)
             }
         }
 
         val totalClicks = clicks.size
-        RouteUtils.extraDebug("§e[AOTV Burst] Total clicks to send: $totalClicks")
+        RouteUtils.debug("§e[AOTV Burst] Total clicks to send: $totalClicks")
 
         SneakHandler.releaseSneak()
         doAotvBurstClicks(clicks, shouldSneakAfter)
     }
 
     private fun doAotvBurstClicks(clicks: List<Pair<Float, Float>>, sneakAfter: Boolean = false) {
-        RouteUtils.extraDebug("§6[AOTV Burst] doAotvBurstClicks() entered with ${clicks.size} clicks")
+        RouteUtils.debug("§6[AOTV Burst] doAotvBurstClicks() entered with ${clicks.size} clicks")
         if (RouteUtils.swapToItem("Aspect of the Void") == SwapResult.FAIL) {
-            RouteUtils.extraDebug("§c[AOTV Burst] Failed to swap to AOTV")
+            RouteUtils.debug("§c[AOTV Burst] Failed to swap to AOTV")
             RouteState.unlock()
             RouteState.waitingForTeleport = false
             executingBurst = false
             return
         }
 
-        RouteUtils.extraDebug("§a[AOTV Burst] Sending ${clicks.size} right-click packets")
+        RouteUtils.debug("§a[AOTV Burst] Sending ${clicks.size} right-click packets")
         for ((i, click) in clicks.withIndex()) {
             val (yaw, pitch) = click
-            RouteUtils.extraDebug("§7[AOTV Burst] Click #${i + 1}/${clicks.size}: yaw=${formatAngle(yaw)}, pitch=${formatAngle(pitch)}")
+            RouteUtils.debug("§7[AOTV Burst] Click #${i + 1}/${clicks.size}: yaw=${formatAngle(yaw)}, pitch=${formatAngle(pitch)}")
             RightClickHandler.doPacketInteract(InteractionHand.MAIN_HAND, yaw, pitch)
         }
 
         if (sneakAfter) {
-            RouteUtils.extraDebug("§e[AOTV Burst] Starting sneak for ETHER landing")
+            RouteUtils.debug("§e[AOTV Burst] Starting sneak for ETHER landing")
             SneakHandler.setSneak(true)
         }
 
-        RouteUtils.extraDebug("§a[AOTV Burst] All ${clicks.size} packets sent! Waiting for teleport...")
+        RouteUtils.debug("§a[AOTV Burst] All ${clicks.size} packets sent! Waiting for teleport...")
         executingBurst = false
     }
 
     fun predictEtherwarpLanding(node: WaypointNode, nodeWorldPos: Vec3, room: Room?): BlockPos? {
-        RouteUtils.extraDebug("§7[Burst] node.x=${node.x}, node.z=${node.z}")
-        RouteUtils.extraDebug("§7[Burst] nodeWorldPos.x=${nodeWorldPos.x}, nodeWorldPos.z=${nodeWorldPos.z}")
+        RouteUtils.debug("§7[Burst] node.x=${node.x}, node.z=${node.z}")
+        RouteUtils.debug("§7[Burst] nodeWorldPos.x=${nodeWorldPos.x}, nodeWorldPos.z=${nodeWorldPos.z}")
 
         val startPos = Vec3(nodeWorldPos.x, nodeWorldPos.y + 1.0 + sneakEyeHeight, nodeWorldPos.z)
         val realYaw = RouteUtils.getRealYaw(node.yaw, room)
         val pitch = node.pitch
 
-        RouteUtils.extraDebug("§7[Burst] Raycast from (${formatCoord(startPos.x)}, ${formatCoord(startPos.y)}, ${formatCoord(startPos.z)})")
-        RouteUtils.extraDebug("§7[Burst] Using yaw=${formatAngle(realYaw)}, pitch=${formatAngle(pitch)}")
+        RouteUtils.debug("§7[Burst] Raycast from (${formatCoord(startPos.x)}, ${formatCoord(startPos.y)}, ${formatCoord(startPos.z)})")
+        RouteUtils.debug("§7[Burst] Using yaw=${formatAngle(realYaw)}, pitch=${formatAngle(pitch)}")
 
         val lookVec = getLookVector(realYaw, pitch)
-        RouteUtils.extraDebug("§7[Burst] Look vector: (${formatCoord(lookVec.x)}, ${formatCoord(lookVec.y)}, ${formatCoord(lookVec.z)})")
+        RouteUtils.debug("§7[Burst] Look vector: (${formatCoord(lookVec.x)}, ${formatCoord(lookVec.y)}, ${formatCoord(lookVec.z)})")
 
         return getEtherPos(startPos, startPos.add(lookVec.scale(etherwarpDistance))).pos
     }
@@ -366,9 +366,16 @@ object BurstMode {
         return findNodeAtPosition(targetWorldPos, allNodes, room, excludeIndices)?.first
     }
 
+    fun resetExecutingState() {
+        if (executingBurst) {
+            RouteUtils.debug("§e[Burst] Force resetting executingBurst flag")
+            executingBurst = false
+        }
+    }
+
     private fun findNodeAtPosition(targetWorldPos: BlockPos, allNodes: List<WaypointNode>, room: Room?, excludeIndices: Set<Int>): Pair<WaypointNode, Int>? {
         val targetRelative = if (DungeonUtils.inDungeons && room != null) room.getRelativeCoords(targetWorldPos) else targetWorldPos
-        RouteUtils.extraDebug("§7[Burst] Searching for node at relative: (${targetRelative.x}, ${targetRelative.y}, ${targetRelative.z})")
+        RouteUtils.debug("§7[Burst] Searching for node at relative: (${targetRelative.x}, ${targetRelative.y}, ${targetRelative.z})")
 
         for ((index, node) in allNodes.withIndex()) {
             if (index in excludeIndices) continue
@@ -379,12 +386,12 @@ object BurstMode {
             val dy = abs(nodeY - targetRelative.y)
             val dz = abs(nodeZ - targetRelative.z)
             if (dx == 0 && dz == 0 && dy <= 1) {
-                RouteUtils.extraDebug("§a[Burst] Exact match! Node #$index at ($nodeX, $nodeY, $nodeZ)")
+                RouteUtils.debug("§a[Burst] Exact match! Node #$index at ($nodeX, $nodeY, $nodeZ)")
                 return node to index
             }
         }
 
-        RouteUtils.extraDebug("§7[Burst] No matching node found")
+        RouteUtils.debug("§7[Burst] No matching node found")
         return null
     }
 
@@ -429,14 +436,14 @@ object BurstMode {
                 if (validEtherwarpFeetIds.get(Block.getId(feetState))) {
                     val headState = chunk.getBlockState(BlockPos(blockPos.x, blockPos.y + 2, blockPos.z))
                     if (validEtherwarpFeetIds.get(Block.getId(headState))) {
-                        RouteUtils.extraDebug("§a[Burst] Valid landing at ${blockPos.x}, ${blockPos.y}, ${blockPos.z}")
+                        RouteUtils.debug("§a[Burst] Valid landing at ${blockPos.x}, ${blockPos.y}, ${blockPos.z}")
                         return EtherPos(true, blockPos, currentBlock)
                     }
                 }
             }
 
             if (x.toInt() == endX.toInt() && y.toInt() == endY.toInt() && z.toInt() == endZ.toInt()) {
-                RouteUtils.extraDebug("§c[Burst] Reached end of ray without finding landing")
+                RouteUtils.debug("§c[Burst] Reached end of ray without finding landing")
                 return EtherPos.none
             }
 
@@ -447,7 +454,7 @@ object BurstMode {
             }
         }
 
-        RouteUtils.extraDebug("§c[Burst] Exceeded $maxVoxelSteps iterations")
+        RouteUtils.debug("§c[Burst] Exceeded $maxVoxelSteps iterations")
         return EtherPos.none
     }
 

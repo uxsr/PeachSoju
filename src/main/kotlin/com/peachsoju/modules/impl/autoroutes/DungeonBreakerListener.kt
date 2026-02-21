@@ -14,6 +14,7 @@ import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.core.BlockPos
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.phys.Vec3
+import us.filthycheaters.legitcatsex.utils.SilentSwap
 import java.io.File
 import kotlin.math.floor
 
@@ -204,9 +205,18 @@ object DungeonBreakerListener {
 
     @SubscribeEvent
     fun onTick(event: TickEvent.Start) {
+        if (isAwaitingDb) {
+            val nonAirCount = awaitingDbPositions.count { pos ->
+                val state = mc.level?.getBlockState(pos)
+                state != null && !state.isAir
+            }
+            RouteUtils.extraDebug("§7[DB] Tick: awaiting=$isAwaitingDb, blocks=$nonAirCount/${awaitingDbPositions.size}")
+        }
+
         if (!isAwaitingDb) return
-        if (awaitingDbPositions.isEmpty()) {
-            cancel()
+
+        if (SilentSwap.isSilent()) {
+            RouteUtils.extraDebug("§7[DB] Waiting for SilentSwap to finish...")
             return
         }
 

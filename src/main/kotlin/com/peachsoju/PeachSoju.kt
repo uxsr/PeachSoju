@@ -12,6 +12,7 @@ import com.peachsoju.modules.impl.autoroutes.Autoroutes
 import com.peachsoju.modules.impl.autoroutes.AutoRoutesCommand
 import com.peachsoju.modules.impl.autoroutes.BatListener
 import com.peachsoju.modules.impl.autoroutes.BurstMode
+import com.peachsoju.modules.impl.autoroutes.DungeonBreakerListener
 import com.peachsoju.modules.impl.autoroutes.SecretListener
 import com.peachsoju.modules.impl.autoroutes.NodeManager
 import com.peachsoju.modules.impl.autoss.AutoSS
@@ -50,6 +51,7 @@ object PeachSoju : ModInitializer {
 		eventBus.register(SneakHandler)
 		eventBus.register(AutoSS)
 		eventBus.register(StormBowTimer)
+		eventBus.register(DungeonBreakerListener)
 //		eventBus.register(AutoClose)
 //		eventBus.register(SecretAura)
 	}
