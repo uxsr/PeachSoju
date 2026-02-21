@@ -132,6 +132,14 @@ class PeachSojuScreen : Screen(Component.literal("PeachSoju")) {
 
         add(GuiElement.Spacer)
 
+        add(GuiElement.SectionHeader("Auto Align", { config.autoAlignExpanded() }, { config.setAutoAlignExpanded(!config.autoAlignExpanded()) }, { config.autoAlign() }))
+
+        if (config.autoAlignExpanded()) {
+            add(GuiElement.Toggle("Enabled", { config.autoAlign() }, { config.toggleAutoAlign() }, "Auto arrow align solver", 1))
+        }
+
+        add(GuiElement.Spacer)
+
         add(GuiElement.SectionHeader("Storm Bow Timer", { config.stormBowTimerExpanded() }, { config.setStormBowTimerExpanded(!config.stormBowTimerExpanded()) }, { config.stormBowTimer() }))
 
         if (config.stormBowTimerExpanded()) {

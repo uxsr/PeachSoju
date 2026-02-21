@@ -10,7 +10,7 @@
 		"MixinPlayerPosition",
 		"MixinConnection",
 		"ClientLevelMixin",
-		"ClientPacketListenerMixin",
+		"ClientPacketListenerMixin"
 
 
 	],

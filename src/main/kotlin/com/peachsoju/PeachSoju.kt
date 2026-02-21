@@ -3,6 +3,8 @@ package com.peachsoju
 import com.peachsoju.eventbus.EventBus
 import com.peachsoju.gui.commands.PeachSojuCommand
 import com.peachsoju.gui.commands.RotateCommand
+import com.peachsoju.modules.impl.autoalign.AutoAlign
+//import com.peachsoju.modules.impl.autoalign.AutoAlignCommand
 //import com.peachsoju.handlers.StormBowCommand
 import com.peachsoju.modules.impl.autoicefill.AutoIceFill
 import com.peachsoju.utils.handlers.RenderBatchManager
@@ -36,6 +38,7 @@ object PeachSoju : ModInitializer {
 		PeachSojuCommand.register()
 		RotateCommand.register()
 		FMBlocksCommands.register()
+//		AutoAlignCommand.register()
 //		StormBowCommand.register()
 //		AutoSSCommand.register()
 		eventBus.register(AutoIceFill)
@@ -52,6 +55,7 @@ object PeachSoju : ModInitializer {
 		eventBus.register(AutoSS)
 		eventBus.register(StormBowTimer)
 		eventBus.register(DungeonBreakerListener)
+		eventBus.register(AutoAlign)
 //		eventBus.register(AutoClose)
 //		eventBus.register(SecretAura)
 	}

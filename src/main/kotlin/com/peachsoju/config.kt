@@ -53,7 +53,11 @@ object config {
         var stormBowTimer: Boolean = false,
         var stormAutoRelease: Boolean = false,
         var stormReleaseTime: Double = 34.25,
-        var stormBowTimerExpanded: Boolean = true
+        var stormBowTimerExpanded: Boolean = true,
+        var autoAlign: Boolean = false,
+        var autoAlignExpanded: Boolean = true,
+        var autoAlignForceDevice: Boolean = false,
+        var autoAlignDelay: Int = 0
     )
 
     @Volatile private var data = Data()
@@ -205,6 +209,17 @@ object config {
         save()
         return data.autoIceFill
     }
+
+    fun autoAlign() = data.autoAlign
+    fun setAutoAlign(v: Boolean) { data.autoAlign = v; save() }
+    fun toggleAutoAlign() = (!data.autoAlign).also { data.autoAlign = it; save() }
+    fun autoAlignExpanded() = data.autoAlignExpanded
+    fun setAutoAlignExpanded(v: Boolean) { data.autoAlignExpanded = v; save() }
+    fun autoAlignForceDevice() = data.autoAlignForceDevice
+    fun setAutoAlignForceDevice(v: Boolean) { data.autoAlignForceDevice = v; save() }
+    fun toggleAutoAlignForceDevice() = (!data.autoAlignForceDevice).also { data.autoAlignForceDevice = it; save() }
+    fun autoAlignDelay() = data.autoAlignDelay
+    fun setAutoAlignDelay(v: Int) { data.autoAlignDelay = v; save() }
 
     fun setAutoIceFill(v: Boolean) {
         data.autoIceFill = v
