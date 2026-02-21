@@ -138,12 +138,12 @@ object AutoAlign {
                         localClicksRemaining[i] = clicks
                     }
                 }
-                RouteUtils.debug("§a[AutoAlign] Found solution! ${localClicksRemaining.size} frames need clicks")
+                RouteUtils.extraDebug("§a[AutoAlign] Found solution! ${localClicksRemaining.size} frames need clicks")
                 return
             }
         }
 
-        RouteUtils.debug("§c[AutoAlign] No matching solution found")
+        RouteUtils.extraDebug("§c[AutoAlign] No matching solution found")
     }
 
     @SubscribeEvent
@@ -166,7 +166,7 @@ object AutoAlign {
         if (!isAtDeviceCached) {
             if (clickedFrames.isNotEmpty()) {
                 clickedFrames.clear()
-                RouteUtils.debug("§e[AutoAlign] Left device area, cleared clicked frames")
+                RouteUtils.extraDebug("§e[AutoAlign] Left device area, cleared clicked frames")
             }
             return
         }
@@ -231,7 +231,7 @@ object AutoAlign {
             localClicksRemaining.remove(frameIndex)
 
             ticksSinceLastClick = 0
-            RouteUtils.debug("§a[AutoAlign] Clicked frame #$frameIndex ($clicksLeft clicks)")
+            RouteUtils.extraDebug("§a[AutoAlign] Clicked frame #$frameIndex ($clicksLeft clicks)")
             return
         }
     }
@@ -259,6 +259,6 @@ object AutoAlign {
         currentFrameRotations = null
         targetSolution = null
         recentClickTimestamps.clear()
-        RouteUtils.debug("§e[AutoAlign] Reset")
+        RouteUtils.extraDebug("§e[AutoAlign] Reset")
     }
 }
