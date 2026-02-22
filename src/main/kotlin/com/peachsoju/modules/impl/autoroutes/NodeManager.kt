@@ -50,6 +50,7 @@ object  NodeManager {
     val renderOnlyStartNodes: Boolean get() = config.renderOnlyStartNodes()
     val showLines: Boolean get() = config.showLines()
     val esp: Boolean get() = config.waypointEsp()
+    val espStartNodesDepthTest: Boolean get() = config.espStartNodesDepthTest()
     var simulating: String? = null
 
     private const val dashLength = 0.8
@@ -456,7 +457,7 @@ object  NodeManager {
         val box = aabb.inflate(0.01)
 
         if (node.start) {
-            event.drawFilledBox(box, Color(255, 140, 80, 1.0f), depth = false)
+            event.drawFilledBox(box, Color(255, 140, 80, 1.0f), depth = espStartNodesDepthTest)
             return
         }
 

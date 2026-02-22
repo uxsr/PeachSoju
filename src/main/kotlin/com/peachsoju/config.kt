@@ -57,7 +57,8 @@ object config {
         var autoAlign: Boolean = false,
         var autoAlignExpanded: Boolean = true,
         var autoAlignForceDevice: Boolean = false,
-        var autoAlignDelay: Int = 0
+        var autoAlignDelay: Int = 0,
+        var espStartNodesDepthTest: Boolean = false
     )
 
     @Volatile private var data = Data()
@@ -131,6 +132,9 @@ object config {
     fun waypointEsp() = data.waypointEsp
     fun setWaypointEsp(v: Boolean) { data.waypointEsp = v; save() }
     fun toggleWaypointEsp() = (!data.waypointEsp).also { data.waypointEsp = it; save() }
+    fun espStartNodesDepthTest() = data.espStartNodesDepthTest
+    fun setEspStartNodesDepthTest(v: Boolean) { data.espStartNodesDepthTest = v; save() }
+    fun toggleEspStartNodesDepthTest() = (!data.espStartNodesDepthTest).also { data.espStartNodesDepthTest = it; save() }
     fun showLines() = data.showLines
     fun setShowLines(v: Boolean) { data.showLines = v; save() }
     fun toggleShowLines() = (!data.showLines).also { data.showLines = it; save() }
