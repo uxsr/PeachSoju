@@ -402,7 +402,7 @@ object BurstMode {
         return Vec3(-xz * sin(yawRad), -sin(pitchRad), xz * cos(yawRad))
     }
 
-    fun getEtherPos(start: Vec3, end: Vec3): EtherPos {
+    fun getEtherPos(start: Vec3, end: Vec3, etherWarp: Boolean = true): EtherPos {
         val level = mc.level ?: return EtherPos.none
 
         val x0 = start.x; val y0 = start.y; val z0 = start.z
@@ -431,14 +431,26 @@ object BurstMode {
             val chunk = level.getChunk(SectionPos.blockToSectionCoord(blockPos.x), SectionPos.blockToSectionCoord(blockPos.z)) ?: return EtherPos.none
 
             val currentBlock = chunk.getBlockState(blockPos)
-            if (!validEtherwarpFeetIds.get(Block.getId(currentBlock))) {
-                val feetState = chunk.getBlockState(BlockPos(blockPos.x, blockPos.y + 1, blockPos.z))
-                if (validEtherwarpFeetIds.get(Block.getId(feetState))) {
-                    val headState = chunk.getBlockState(BlockPos(blockPos.x, blockPos.y + 2, blockPos.z))
-                    if (validEtherwarpFeetIds.get(Block.getId(headState))) {
-                        RouteUtils.debug("§a[Burst] Valid landing at ${blockPos.x}, ${blockPos.y}, ${blockPos.z}")
-                        return EtherPos(true, blockPos, currentBlock)
+            val currentBlockId = Block.getId(currentBlock.block.defaultBlockState())
+
+            if ((!validEtherwarpFeetIds.get(currentBlockId) && etherWarp) || (currentBlockId != 0 && !etherWarp)) {
+                if (etherWarp) {
+                    val feetState = chunk.getBlockState(BlockPos(blockPos.x, blockPos.y + 1, blockPos.z))
+                    val feetBlockId = Block.getId(feetState.block.defaultBlockState())
+                    if (!validEtherwarpFeetIds.get(feetBlockId)) {
+                        return EtherPos(false, blockPos, currentBlock)
                     }
+
+                    val headState = chunk.getBlockState(BlockPos(blockPos.x, blockPos.y + 2, blockPos.z))
+                    val headBlockId = Block.getId(headState.block.defaultBlockState())
+                    if (!validEtherwarpFeetIds.get(headBlockId)) {
+                        return EtherPos(false, blockPos, currentBlock)
+                    }
+
+                    RouteUtils.debug("§a[Burst] Valid landing at ${blockPos.x}, ${blockPos.y}, ${blockPos.z}")
+                    return EtherPos(true, blockPos, currentBlock)
+                } else {
+                    return EtherPos(true, blockPos, currentBlock)
                 }
             }
 
