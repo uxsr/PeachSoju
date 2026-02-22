@@ -23,6 +23,7 @@ import com.peachsoju.modules.impl.fmblocks.FMBlocksCommands
 import com.peachsoju.modules.impl.fmblocks.FMBlocksEditMode
 import com.peachsoju.modules.impl.fmblocks.FMBlocksManager
 import com.peachsoju.modules.impl.stormbow.StormBowTimer
+import com.peachsoju.utils.handlers.WalkHandler
 import net.fabricmc.api.ModInitializer
 import net.minecraft.client.Minecraft
 import org.slf4j.LoggerFactory
@@ -56,6 +57,7 @@ object PeachSoju : ModInitializer {
 		eventBus.register(StormBowTimer)
 		eventBus.register(DungeonBreakerListener)
 		eventBus.register(AutoAlign)
+		eventBus.register(WalkHandler)
 //		eventBus.register(AutoClose)
 //		eventBus.register(SecretAura)
 	}

@@ -17,6 +17,7 @@ import com.odtheking.odin.utils.skyblock.LocationUtils
 import com.odtheking.odin.utils.skyblock.dungeon.DungeonUtils
 import com.odtheking.odin.utils.skyblock.dungeon.DungeonUtils.getRealCoords
 import com.odtheking.odin.utils.skyblock.dungeon.tiles.Room
+import com.peachsoju.utils.handlers.WalkHandler
 import net.minecraft.core.BlockPos
 import net.minecraft.network.protocol.game.ClientboundPlayerPositionPacket
 import net.minecraft.world.InteractionHand
@@ -102,13 +103,10 @@ object Autoroutes {
         if (RouteState.awaitingSecrets > 0 || RouteState.awaitingSecretConfirmation || BatListener.isAwaitingBat() || DungeonBreakerListener.isAwaitingDb()) {
             val leftClickDown = mc.options.keyAttack.isDown
             if (leftClickDown && !leftClickWasDown) {
-                val hit = mc.hitResult
-                if (hit == null || hit.type == HitResult.Type.MISS) {
-                    when {
-                        BatListener.isAwaitingBat() -> BatListener.manualTrigger()
-                        DungeonBreakerListener.isAwaitingDb() -> DungeonBreakerListener.manualTrigger()
-                        else -> SecretListener.manualTrigger()
-                    }
+                when {
+                    BatListener.isAwaitingBat() -> BatListener.manualTrigger()
+                    DungeonBreakerListener.isAwaitingDb() -> DungeonBreakerListener.manualTrigger()
+                    else -> SecretListener.manualTrigger()
                 }
             }
             leftClickWasDown = leftClickDown
@@ -295,6 +293,7 @@ object Autoroutes {
         RouteState.fullReset()
         SneakHandler.releaseSneak()
         BatListener.cancel()
+        WalkHandler.reset()
         DungeonBreakerListener.cancel()
         NodeManager.reloadFromDisk()
         pendingEtherwarps.clear()
@@ -525,6 +524,8 @@ object Autoroutes {
             WPType.USEITEM -> executeUseItem(node, realYaw, pitch)
             WPType.LOOK -> executeLook(realYaw, pitch)
             WPType.NOP -> { RouteUtils.debug("§7  NOP - no action"); RouteState.unlock() }
+            WPType.WALK -> executeWalk(realYaw, pitch)
+            WPType.STOP -> executeStop()
         }
     }
 
@@ -646,6 +647,30 @@ object Autoroutes {
         SneakHandler.releaseSneak()
         RouteState.routeActive = false
         RouteUtils.debug("§c[Route] Ended (look node)")
+        RouteState.unlock()
+    }
+
+    private fun executeWalk(yaw: Float, pitch: Float) {
+        RouteUtils.debug("§a[Walk] Walking: yaw=${"%.1f".format(yaw)}, pitch=${"%.1f".format(pitch)}")
+
+        SneakHandler.releaseSneak()
+
+        WalkHandler.startWalk(yaw, pitch) {
+            RouteUtils.debug("§a[Walk] Walk ended by manual input")
+        }
+
+        RouteState.unlock()
+    }
+
+    private fun executeStop() {
+        RouteUtils.debug("§c[Stop] Stopping all movement")
+
+        if (WalkHandler.isWalking()) {
+            WalkHandler.stopWalk()
+        }
+
+        WalkHandler.releaseAllMovement()
+        SneakHandler.releaseSneak()
         RouteState.unlock()
     }
 

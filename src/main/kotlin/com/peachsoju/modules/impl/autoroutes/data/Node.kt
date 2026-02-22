@@ -2,7 +2,7 @@ package com.peachsoju.modules.impl.autoroutes.data
 
 import net.minecraft.core.BlockPos
 
-enum class WPType { ETHER, AOTV, HYPE, SUPERBOOM, USEITEM, LOOK, NOP;
+enum class WPType { ETHER, AOTV, HYPE, SUPERBOOM, USEITEM, LOOK, NOP, WALK, STOP;
     companion object { fun fromString(str: String): WPType? = runCatching { valueOf(str.uppercase()) }.getOrNull() }
 }
 
@@ -13,7 +13,7 @@ data class WaypointNode(
     val chained: Boolean = false, val radius: Double = 0.5, val height: Double = 1.5, val start: Boolean = false,
     val delay: Int = 0, val stop: Boolean = false, val center: Boolean = false,
     val awaitSecret: Int = 0, val awaitBat: Boolean = false, val awaitType: String = "any",
-    val awaitDb: Boolean = false, // NEW: Wait for dungeon breaker blocks to be mined
+    val awaitDb: Boolean = false,
     val toBlock: BlockPos? = null,
     val targetBlock: BlockPos? = null,
     val itemName: String? = null,

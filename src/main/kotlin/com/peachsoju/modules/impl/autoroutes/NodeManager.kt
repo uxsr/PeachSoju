@@ -154,7 +154,7 @@ object  NodeManager {
 
         val parsed = parseAddArgs(rawArgs) ?: return """
             §c[AR] Usage: /ar add <type> [modifiers...]
-            §7Types: §fether, aotv, hype, superboom, await, useitem, nop
+            §7Types: §fether, aotv, hype, superboom, await, useitem, nop, walk, stop
             §7Modifiers: §fchained, exact, stop, center, await:N, awaitbat, db, delay:N, item:NAME
         """.trimIndent()
 
@@ -665,6 +665,8 @@ object  NodeManager {
         WPType.USEITEM -> "§a"
         WPType.LOOK -> "§e"
         WPType.NOP -> "§7"
+        WPType.WALK -> "§a"
+        WPType.STOP -> "§c"
     }
 
     private fun colorFor(node: WaypointNode): Color {

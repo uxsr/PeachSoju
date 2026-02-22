@@ -11,6 +11,7 @@ import net.minecraft.client.input.KeyEvent
 import net.minecraft.client.input.MouseButtonEvent
 import net.minecraft.network.chat.Component
 import kotlin.math.abs
+import kotlin.math.max
 
 class NodeAppearanceScreen(private val parent: Screen?) : Screen(Component.literal("Node Appearance")) {
 
@@ -23,9 +24,11 @@ class NodeAppearanceScreen(private val parent: Screen?) : Screen(Component.liter
         private const val TEXT_LIGHT = 0xFFFFFFFF.toInt()
 
         private const val GUI_WIDTH = 320
-        private const val GUI_HEIGHT = 340
+        private const val GUI_HEIGHT = 300
         private const val PADDING = 10
         private const val ROW_HEIGHT = 36
+        private const val HEADER_HEIGHT = 30
+        private const val SCROLL_STEP = 14
 
         private const val COLOR_PICKER_SIZE = 100
         private const val HUE_BAR_WIDTH = 15
@@ -33,6 +36,8 @@ class NodeAppearanceScreen(private val parent: Screen?) : Screen(Component.liter
 
     private var guiLeft = 0
     private var guiTop = 0
+    private var scrollY = 0
+    private var maxScroll = 0
 
     private var selectedType: WPType? = null
     private var showColorPicker = false
@@ -49,6 +54,14 @@ class NodeAppearanceScreen(private val parent: Screen?) : Screen(Component.liter
         super.init()
         guiLeft = (width - GUI_WIDTH) / 2
         guiTop = (height - GUI_HEIGHT) / 2
+        recomputeMaxScroll()
+    }
+
+    private fun recomputeMaxScroll() {
+        val contentHeight = WPType.entries.size * ROW_HEIGHT
+        val viewHeight = GUI_HEIGHT - HEADER_HEIGHT - PADDING * 2
+        maxScroll = max(0, contentHeight - viewHeight)
+        scrollY = scrollY.coerceIn(0, max(0, maxScroll))
     }
 
     override fun render(graphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
@@ -73,7 +86,7 @@ class NodeAppearanceScreen(private val parent: Screen?) : Screen(Component.liter
 
         if (showStyleDropdown && dropdownType != null) {
             val typeIndex = WPType.entries.indexOf(dropdownType)
-            val rowY = (guiTop + 45) + (typeIndex * ROW_HEIGHT)
+            val rowY = (guiTop + HEADER_HEIGHT + PADDING) + (typeIndex * ROW_HEIGHT) - scrollY
             val dropdownX = guiLeft + 140
             val dropdownY = rowY + 20
             val dropdownWidth = 120
@@ -128,9 +141,19 @@ class NodeAppearanceScreen(private val parent: Screen?) : Screen(Component.liter
             }
         }
 
-        val startY = guiTop + 45
-        for ((_, type) in WPType.entries.withIndex()) {
-            val rowY = startY + (WPType.entries.indexOf(type) * ROW_HEIGHT)
+        val contentTop = guiTop + HEADER_HEIGHT + PADDING
+        val contentBottom = guiTop + GUI_HEIGHT - PADDING
+
+        if (mouseY < contentTop || mouseY > contentBottom) {
+            return super.mouseClicked(event, consumed)
+        }
+
+        val startY = contentTop - scrollY
+        for ((i, type) in WPType.entries.withIndex()) {
+            val rowY = startY + (i * ROW_HEIGHT)
+
+            if (rowY + ROW_HEIGHT < contentTop || rowY > contentBottom) continue
+
             val colorX = guiLeft + 100
             val colorY = rowY + 2
             val colorSize = 20
@@ -191,6 +214,19 @@ class NodeAppearanceScreen(private val parent: Screen?) : Screen(Component.liter
         return super.mouseReleased(event)
     }
 
+    override fun mouseScrolled(mouseX: Double, mouseY: Double, horizontalAmount: Double, verticalAmount: Double): Boolean {
+        if (showStyleDropdown || showColorPicker) {
+            return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount)
+        }
+
+        if (maxScroll > 0) {
+            scrollY = (scrollY - (verticalAmount.toInt() * SCROLL_STEP)).coerceIn(0, maxScroll)
+            return true
+        }
+
+        return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount)
+    }
+
     override fun keyPressed(event: KeyEvent): Boolean {
         if (event.key() != 256) return super.keyPressed(event)
         if (showColorPicker) {
@@ -210,20 +246,30 @@ class NodeAppearanceScreen(private val parent: Screen?) : Screen(Component.liter
     private fun drawPanel(graphics: GuiGraphics) {
         graphics.fill(guiLeft - 2, guiTop - 2, guiLeft + GUI_WIDTH + 2, guiTop + GUI_HEIGHT + 2, PEACH_DARK)
         graphics.fill(guiLeft, guiTop, guiLeft + GUI_WIDTH, guiTop + GUI_HEIGHT, PEACH_LIGHT)
-        graphics.fill(guiLeft + PADDING, guiTop + 35, guiLeft + GUI_WIDTH - PADDING, guiTop + GUI_HEIGHT - 10, PEACH_CREAM)
+        graphics.fill(guiLeft + PADDING, guiTop + HEADER_HEIGHT + PADDING, guiLeft + GUI_WIDTH - PADDING, guiTop + GUI_HEIGHT - PADDING, PEACH_CREAM)
     }
 
     private fun drawHeader(graphics: GuiGraphics) {
-        graphics.fill(guiLeft, guiTop, guiLeft + GUI_WIDTH, guiTop + 30, PEACH_MEDIUM)
+        graphics.fill(guiLeft, guiTop, guiLeft + GUI_WIDTH, guiTop + HEADER_HEIGHT, PEACH_MEDIUM)
         val title = "§l✿ Node Appearance ✿"
         graphics.drawString(font, title, guiLeft + (GUI_WIDTH - font.width(title)) / 2, guiTop + 10, TEXT_DARK, false)
         graphics.drawString(font, "< Back", guiLeft + 10, guiTop + 10, TEXT_DARK, false)
     }
 
     private fun drawNodeTypeList(graphics: GuiGraphics, mouseX: Int, mouseY: Int) {
-        val startY = guiTop + 45
+        val contentLeft = guiLeft + PADDING
+        val contentTop = guiTop + HEADER_HEIGHT + PADDING
+        val contentRight = guiLeft + GUI_WIDTH - PADDING
+        val contentBottom = guiTop + GUI_HEIGHT - PADDING
+
+        graphics.enableScissor(contentLeft, contentTop, contentRight, contentBottom)
+
+        val startY = contentTop - scrollY
         for ((i, type) in WPType.entries.withIndex()) {
             val rowY = startY + (i * ROW_HEIGHT)
+
+            if (rowY + ROW_HEIGHT < contentTop || rowY > contentBottom) continue
+
             val appearance = config.getNodeAppearance(type)
 
             graphics.drawString(font, type.name.lowercase().replaceFirstChar { it.uppercase() }, guiLeft + PADDING + 5, rowY + 4, TEXT_DARK, false)
@@ -231,7 +277,7 @@ class NodeAppearanceScreen(private val parent: Screen?) : Screen(Component.liter
             val colorX = guiLeft + 100
             val colorY = rowY + 2
             val colorSize = 20
-            val isColorHover = mouseX in colorX..(colorX + colorSize) && mouseY in colorY..(colorY + colorSize)
+            val isColorHover = mouseX in colorX..(colorX + colorSize) && mouseY in colorY..(colorY + colorSize) && mouseY in contentTop..contentBottom
 
             graphics.fill(colorX - 1, colorY - 1, colorX + colorSize + 1, colorY + colorSize + 1, PEACH_DARK)
 
@@ -242,7 +288,7 @@ class NodeAppearanceScreen(private val parent: Screen?) : Screen(Component.liter
             val styleX = guiLeft + 140
             val styleWidth = 120
             val styleHeight = 18
-            val isStyleHover = mouseX in styleX..(styleX + styleWidth) && mouseY in colorY..(colorY + styleHeight)
+            val isStyleHover = mouseX in styleX..(styleX + styleWidth) && mouseY in colorY..(colorY + styleHeight) && mouseY in contentTop..contentBottom
             val styleBg = if (isStyleHover) brighten(PEACH_MEDIUM) else PEACH_MEDIUM
 
             graphics.fill(styleX - 1, colorY - 1, styleX + styleWidth + 1, colorY + styleHeight + 1, PEACH_DARK)
@@ -251,6 +297,21 @@ class NodeAppearanceScreen(private val parent: Screen?) : Screen(Component.liter
             val styleText = RenderStyle.fromString(appearance.style).displayName
             graphics.drawString(font, styleText, styleX + 5, colorY + 5, TEXT_LIGHT, false)
             graphics.drawString(font, "▼", styleX + styleWidth - 12, colorY + 5, TEXT_LIGHT, false)
+        }
+
+        graphics.disableScissor()
+
+        if (maxScroll > 0) {
+            val scrollbarX = contentRight - 6
+            val scrollbarTop = contentTop + 2
+            val scrollbarBottom = contentBottom - 2
+            val scrollbarHeight = scrollbarBottom - scrollbarTop
+
+            val thumbHeight = max(16, (scrollbarHeight * (scrollbarHeight.toFloat() / (scrollbarHeight + maxScroll))).toInt())
+            val thumbY = scrollbarTop + ((scrollY.toFloat() / maxScroll) * (scrollbarHeight - thumbHeight)).toInt()
+
+            graphics.fill(scrollbarX, scrollbarTop, scrollbarX + 4, scrollbarBottom, PEACH_DARK)
+            graphics.fill(scrollbarX + 1, thumbY, scrollbarX + 3, thumbY + thumbHeight, PEACH_MEDIUM)
         }
     }
 
@@ -293,7 +354,8 @@ class NodeAppearanceScreen(private val parent: Screen?) : Screen(Component.liter
         val type = dropdownType ?: return
         val typeIndex = WPType.entries.indexOf(type)
 
-        val rowY = (guiTop + 45) + (typeIndex * ROW_HEIGHT)
+        val contentTop = guiTop + HEADER_HEIGHT + PADDING
+        val rowY = contentTop + (typeIndex * ROW_HEIGHT) - scrollY
         val dropdownX = guiLeft + 140
         val dropdownY = rowY + 20
         val dropdownWidth = 120

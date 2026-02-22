@@ -69,7 +69,9 @@ object config {
         WPType.SUPERBOOM to NodeAppearance(NodeColor(255, 85, 85, 0.60f), "PULSE_PYRAMID"),
         WPType.USEITEM to NodeAppearance(NodeColor(85, 255, 85, 0.60f), "PULSE_PYRAMID"),
         WPType.LOOK to NodeAppearance(NodeColor(255, 255, 85, 0.60f), "PULSE_PYRAMID"),
-        WPType.NOP to NodeAppearance(NodeColor(170, 170, 170, 0.60f), "PULSE_PYRAMID")
+        WPType.NOP to NodeAppearance(NodeColor(170, 170, 170, 0.60f), "PULSE_PYRAMID"),
+        WPType.WALK to NodeAppearance(NodeColor(34, 139, 34, 0.8f), "PULSE_PYRAMID"),
+        WPType.STOP to NodeAppearance(NodeColor(139, 0, 0, 0.8f), "PULSE_PYRAMID")
     )
 
     fun load(): Data {
