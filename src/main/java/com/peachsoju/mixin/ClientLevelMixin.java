@@ -22,13 +22,4 @@ public class ClientLevelMixin {
         }
     }
 
-//    @Inject(method = "removeEntity", at = @At("HEAD"))
-//    private void onRemoveEntity(int entityId, Entity.RemovalReason removalReason, CallbackInfo ci) {
-//        ClientLevel level = (ClientLevel)(Object)this;
-//        Entity entity = level.getEntity(entityId);
-//        RouteUtils.debug("§7[Mixin] removeEntity called, entityId=" + entityId + ", entity=" + (entity != null ? entity.getClass().getSimpleName() : "null"));
-//        if (entity != null) {
-//            EventDispatcher.INSTANCE.onEntityRemoved(entity);
-//        }
-//    }
 }

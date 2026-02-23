@@ -2,10 +2,10 @@ package com.peachsoju.modules.impl.autoroutes
 
 import com.peachsoju.PeachSoju.mc
 import com.peachsoju.eventbus.SubscribeEvent
+import com.peachsoju.eventbus.events.ItemPickupEvent
 import com.peachsoju.eventbus.events.PacketEvent
 import com.peachsoju.utils.RouteUtils
 import net.minecraft.core.BlockPos
-import net.minecraft.network.protocol.game.ClientboundTakeItemEntityPacket
 import net.minecraft.network.protocol.game.ServerboundUseItemOnPacket
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.SkullBlock
@@ -14,11 +14,15 @@ import net.minecraft.world.level.block.entity.SkullBlockEntity
 object SecretListener {
 
     private var currentAwaitType: String = "any"
-    private val recentItemPickups = mutableListOf<Pair<Long, String>>()
-    private const val ITEM_BUFFER_MS = 250L
     private val recentClicks = mutableMapOf<BlockPos, Long>()
     private const val CLICK_COOLDOWN_MS = 500L
     private const val WITHER_ESSENCE_UUID = "e0f3e929-869e-3dca-9504-54c666ee6f23"
+
+    private val dungeonItemDrops = listOf(
+        "Health Potion VIII Splash Potion", "Healing Potion 8 Splash Potion", "Healing Potion VIII Splash Potion", "Healing VIII Splash Potion", "Healing 8 Splash Potion",
+        "Decoy", "Inflatable Jerry", "Spirit Leap", "Trap", "Training Weights", "Defuse Kit", "Dungeon Chest Key", "Treasure Talisman", "Revive Stone", "Architect's First Draft",
+        "Secret Dye", "Candycomb"
+    )
 
     fun setAwaitType(awaitType: String) {
         currentAwaitType = awaitType
@@ -64,6 +68,18 @@ object SecretListener {
     }
 
     @SubscribeEvent
+    fun onItemPickup(event: ItemPickupEvent) {
+        if (RouteState.awaitingSecrets <= 0) return
+
+        val itemName = event.itemStack.hoverName.string
+
+        if (!dungeonItemDrops.any { itemName.contains(it, ignoreCase = true) }) return
+
+        RouteUtils.debug("§e[SecretListener] Item pickup detected: $itemName")
+        onSecretFound("Item: $itemName", "item")
+    }
+
+    @SubscribeEvent
     fun onPacketSend(event: PacketEvent.Send) {
         val packet = event.packet
 
@@ -98,43 +114,15 @@ object SecretListener {
                     val uuid = blockEntity?.ownerProfile?.partialProfile()?.id?.toString()
                     if (uuid == WITHER_ESSENCE_UUID) {
                         RouteUtils.debug("§e[SecretListener] Skull interaction detected at $blockPos")
-                        onSecretFound("Skull at $blockPos", "chest") //im lazy
+                        onSecretFound("Skull at $blockPos", "chest")
                     }
                 }
             }
         }
     }
 
-    @SubscribeEvent
-    fun onPacketReceive(event: PacketEvent.Receive) {
-        val packet = event.packet
-        if (packet is ClientboundTakeItemEntityPacket) {
-            val player = mc.player ?: return
-
-            if (packet.playerId == player.id) {
-                val now = System.currentTimeMillis()
-                recentItemPickups.add(now to "Item pickup")
-                recentItemPickups.removeIf { now - it.first > ITEM_BUFFER_MS }
-                onSecretFound("Item pickup", "item")
-            }
-        }
-    }
-
     fun clearClickHistory() {
         recentClicks.clear()
-    }
-
-    fun checkBufferedItems() {
-        if (RouteState.awaitingSecrets <= 0) return
-        if (currentAwaitType != "any" && currentAwaitType != "item") return
-
-        val now = System.currentTimeMillis()
-        recentItemPickups.removeIf { now - it.first > ITEM_BUFFER_MS }
-        if (recentItemPickups.isNotEmpty()) {
-            RouteUtils.extraDebug("§e[Secret] Found ${recentItemPickups.size} buffered item pickup(s)")
-            val pickup = recentItemPickups.removeFirst()
-            onSecretFound(pickup.second, "item")
-        }
     }
 
     fun manualTrigger() {
