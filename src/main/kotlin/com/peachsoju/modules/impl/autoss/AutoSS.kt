@@ -310,10 +310,4 @@ object AutoSS {
         }
     }
 
-    private fun modMessage(msg: String) {
-        mc.player?.displayClientMessage(
-            Component.literal("§d[PeachSoju] §f$msg"),
-            false
-        )
-    }
 }

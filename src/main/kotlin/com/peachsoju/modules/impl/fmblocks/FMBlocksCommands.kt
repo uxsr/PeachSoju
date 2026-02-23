@@ -19,12 +19,14 @@ object FMBlocksCommands {
                     .executes { ctx ->
                         val enabled = FMBlocksManager.enabled
                         val editMode = FMBlocksEditMode.enabled
+                        val simulating = FMBlocksManager.simulating
                         val (rooms, blocks) = FMBlocksManager.getStats()
                         ctx.source.sendFeedback(
                             Component.literal(
                                 "§e§lFMBlocks: ${if (enabled) "§aON" else "§cOFF"} §8| " +
                                         "§7Edit: ${if (editMode) "§aON" else "§cOFF"} §8| " +
-                                        "§7$blocks blocks in $rooms rooms"
+                                        "§7$blocks blocks in $rooms rooms" +
+                                        if (simulating != null) " §8| §dSim: $simulating" else ""
                             )
                         )
                         Command.SINGLE_SUCCESS
@@ -77,6 +79,7 @@ object FMBlocksCommands {
                         ClientCommandManager.literal("info").executes { ctx ->
                             val enabled = FMBlocksManager.enabled
                             val editMode = FMBlocksEditMode.enabled
+                            val simulating = FMBlocksManager.simulating
                             val roomKey = FMBlocksManager.getCurrentRoomKey()
                             val currentBlocks = roomKey?.let {
                                 FMBlocksManager.getBlocksForRoom(it)?.blocks?.values?.sumOf { v -> v.size } ?: 0
@@ -87,6 +90,7 @@ object FMBlocksCommands {
                             ctx.source.sendFeedback(Component.literal("§e§lFMBlocks Info"))
                             ctx.source.sendFeedback(Component.literal("§7Enabled: ${if (enabled) "§aYES" else "§cNO"}"))
                             ctx.source.sendFeedback(Component.literal("§7Edit Mode: ${if (editMode) "§aON" else "§cOFF"}"))
+                            ctx.source.sendFeedback(Component.literal("§7Simulating: ${if (simulating != null) "§d$simulating" else "§cNO"}"))
                             ctx.source.sendFeedback(Component.literal("§7Room: §a${roomKey ?: "None"}"))
                             ctx.source.sendFeedback(Component.literal("§7Blocks in room: §a$currentBlocks"))
                             ctx.source.sendFeedback(Component.literal("§7Total rooms: §a$totalRooms"))
@@ -120,6 +124,54 @@ object FMBlocksCommands {
 
                                         FMBlocksEditMode.setCurrentBlock(block.defaultBlockState())
                                         ctx.source.sendFeedback(Component.literal("§a[FMBlocks] Selected: ${block.descriptionId}"))
+                                        Command.SINGLE_SUCCESS
+                                    }
+                            )
+                    )
+                    .then(
+                        ClientCommandManager.literal("sim")
+                            .executes { ctx ->
+                                val current = FMBlocksManager.simulating
+                                if (current != null) {
+                                    FMBlocksManager.setSimulating(null)
+                                    ctx.source.sendFeedback(Component.literal("§e[FMBlocks] Simulation disabled"))
+                                } else {
+                                    ctx.source.sendFeedback(Component.literal("§e[FMBlocks] Not simulating. Use §f/fm sim <room>§7 to start"))
+                                    ctx.source.sendFeedback(Component.literal("§7Examples: §f/fm sim boss_7§7, §f/fm sim Three Weirdos"))
+                                }
+                                Command.SINGLE_SUCCESS
+                            }
+                            .then(
+                                ClientCommandManager.literal("off").executes { ctx ->
+                                    FMBlocksManager.setSimulating(null)
+                                    ctx.source.sendFeedback(Component.literal("§e[FMBlocks] Simulation disabled"))
+                                    Command.SINGLE_SUCCESS
+                                }
+                            )
+                            .then(
+                                ClientCommandManager.literal("list").executes { ctx ->
+                                    val rooms = FMBlocksManager.getRoomList()
+                                    if (rooms.isEmpty()) {
+                                        ctx.source.sendFeedback(Component.literal("§c[FMBlocks] No rooms with blocks saved"))
+                                    } else {
+                                        ctx.source.sendFeedback(Component.literal("§e[FMBlocks] Saved rooms (${rooms.size}):"))
+                                        rooms.forEach { room ->
+                                            val blockCount = FMBlocksManager.getBlocksForRoom(room)?.blocks?.values?.sumOf { it.size } ?: 0
+                                            ctx.source.sendFeedback(Component.literal("  §7- §f$room §8($blockCount blocks)"))
+                                        }
+                                    }
+                                    Command.SINGLE_SUCCESS
+                                }
+                            )
+                            .then(
+                                ClientCommandManager.argument("room", StringArgumentType.greedyString())
+                                    .executes { ctx ->
+                                        val roomName = StringArgumentType.getString(ctx, "room")
+                                        FMBlocksManager.setSimulating(roomName)
+                                        val blockCount = FMBlocksManager.getBlocksForRoom(roomName)?.blocks?.values?.sumOf { it.size } ?: 0
+                                        ctx.source.sendFeedback(
+                                            Component.literal("§a[FMBlocks] Simulating: §d$roomName §7($blockCount blocks)")
+                                        )
                                         Command.SINGLE_SUCCESS
                                     }
                             )

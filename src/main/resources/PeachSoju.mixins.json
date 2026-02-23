@@ -11,7 +11,9 @@
 		"MixinConnection",
 		"ClientLevelMixin",
 		"ClientPacketListenerMixin",
-		"IMixinClientLevel"
+		"IMixinClientLevel",
+		"MixinLocalPlayer",
+		"MixinItemInHandRenderer"
 
 
 	],

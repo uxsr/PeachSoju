@@ -54,11 +54,13 @@ object config {
         var stormAutoRelease: Boolean = false,
         var stormReleaseTime: Double = 34.25,
         var stormBowTimerExpanded: Boolean = true,
+        var stormLegacyAnimation: Boolean = false,
         var autoAlign: Boolean = false,
         var autoAlignExpanded: Boolean = true,
         var autoAlignForceDevice: Boolean = false,
         var autoAlignDelay: Int = 0,
-        var espStartNodesDepthTest: Boolean = false
+        var espStartNodesDepthTest: Boolean = false,
+        var legacyAnimationsExpanded: Boolean = true
     )
 
     @Volatile private var data = Data()
@@ -141,6 +143,8 @@ object config {
     fun getNodeAppearance(type: WPType): NodeAppearance {
         return data.nodeAppearances[type.name] ?: defaultAppearances[type] ?: NodeAppearance()
     }
+    fun legacyAnimationsExpanded() = data.legacyAnimationsExpanded
+    fun setLegacyAnimationsExpanded(v: Boolean) { data.legacyAnimationsExpanded = v; save() }
     fun fmBlocksEnabled() = data.fmBlocksEnabled
     fun setFmBlocksEnabled(v: Boolean) { data.fmBlocksEnabled = v; save() }
     fun toggleFmBlocksEnabled() = (!data.fmBlocksEnabled).also { data.fmBlocksEnabled = it; save() }
@@ -207,6 +211,10 @@ object config {
     fun setStormReleaseTime(v: Double) { data.stormReleaseTime = v; save() }
     fun stormBowTimerExpanded() = data.stormBowTimerExpanded
     fun setStormBowTimerExpanded(v: Boolean) { data.stormBowTimerExpanded = v; save() }
+
+    fun stormLegacyAnimation() = data.stormLegacyAnimation
+    fun setStormLegacyAnimation(v: Boolean) { data.stormLegacyAnimation = v; save() }
+    fun toggleStormLegacyAnimation() = (!data.stormLegacyAnimation).also { data.stormLegacyAnimation = it; save() }
 
     fun autoIceFill(): Boolean = data.autoIceFill
 

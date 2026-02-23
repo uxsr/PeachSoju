@@ -1,6 +1,6 @@
 package com.peachsoju.gui.commands
 
-import com.peachsoju.gui.PeachSojuScreen
+import com.peachsoju.gui.AnimatedPeachSojuScreen
 import com.mojang.brigadier.Command
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback
@@ -19,7 +19,7 @@ object PeachSojuCommand {
             ClientTickEvents.END_CLIENT_TICK.register { client ->
                 if (!pendingOpen) return@register
                 pendingOpen = false
-                client.setScreen(PeachSojuScreen())
+                client.setScreen(AnimatedPeachSojuScreen())
             }
         }
 

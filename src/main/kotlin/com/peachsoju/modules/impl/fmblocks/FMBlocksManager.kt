@@ -41,14 +41,47 @@ object FMBlocksManager {
     private var lastRoomKey: String? = null
     private var loaded = false
 
+    var simulating: String? = null
+        private set
+
+    fun setSimulating(roomKey: String?) {
+        simulating = roomKey
+        if (roomKey != null) {
+            lastRoomKey = null
+            worldBlockCache.clear()
+            RouteUtils.debug("§e[FMBlocks] Simulating room: $roomKey")
+        } else {
+            worldBlockCache.clear()
+            lastRoomKey = null
+            RouteUtils.debug("§e[FMBlocks] Simulation disabled")
+        }
+    }
+
     fun getBlocksForRoom(roomKey: String): FMBlocksRoomData? = roomBlocks[roomKey]
 
     fun getOrCreateBlocksForRoom(roomKey: String): FMBlocksRoomData =
         roomBlocks.getOrPut(roomKey) { FMBlocksRoomData() }
 
     fun getCurrentRoomKey(): String? {
+        if (simulating != null) return simulating
+
         if (!LocationUtils.isInSkyblock) return null
-        return if (DungeonUtils.inDungeons) DungeonUtils.currentRoom?.data?.name else LocationUtils.currentArea?.toString()
+
+        return if (DungeonUtils.inDungeons) {
+            if (DungeonUtils.inBoss) {
+                "boss_${DungeonUtils.floor?.floorNumber ?: return null}"
+            } else {
+                DungeonUtils.currentRoom?.data?.name
+            }
+        } else {
+            LocationUtils.currentArea?.toString()
+        }
+    }
+
+    private fun getCurrentRoom(): Room? {
+        if (simulating != null) return null
+        if (DungeonUtils.inBoss) return null
+        return DungeonUtils.currentRoom
     }
 
     fun worldToRelative(worldPos: BlockPos, room: Room?): BlockPos =
@@ -60,7 +93,7 @@ object FMBlocksManager {
     fun getRoomRotation(room: Room?): Int = room?.rotation?.toDegrees() ?: 0
 
     fun addBlock(worldPos: BlockPos, state: BlockState): Boolean {
-        val room = DungeonUtils.currentRoom
+        val room = getCurrentRoom()
         val roomKey = getCurrentRoomKey() ?: return false
         val relativePos = worldToRelative(worldPos, room)
         val rotation = getRoomRotation(room)
@@ -79,7 +112,7 @@ object FMBlocksManager {
     }
 
     fun addGhostBlock(worldPos: BlockPos): Boolean {
-        val room = DungeonUtils.currentRoom
+        val room = getCurrentRoom()
         val roomKey = getCurrentRoomKey() ?: return false
         val relativePos = worldToRelative(worldPos, room)
         val data = getOrCreateBlocksForRoom(roomKey)
@@ -96,7 +129,7 @@ object FMBlocksManager {
     }
 
     fun removeBlock(worldPos: BlockPos): Boolean {
-        val room = DungeonUtils.currentRoom
+        val room = getCurrentRoom()
         val roomKey = getCurrentRoomKey() ?: return false
         val relativePos = worldToRelative(worldPos, room)
         val data = getBlocksForRoom(roomKey) ?: return false
@@ -111,14 +144,14 @@ object FMBlocksManager {
     }
 
     fun hasBlockAt(worldPos: BlockPos): Boolean {
-        val room = DungeonUtils.currentRoom
+        val room = getCurrentRoom()
         val roomKey = getCurrentRoomKey() ?: return false
         val relativePos = worldToRelative(worldPos, room)
         return getBlocksForRoom(roomKey)?.hasBlockAt(relativePos) == true
     }
 
     fun isGhostBlock(worldPos: BlockPos): Boolean {
-        val room = DungeonUtils.currentRoom
+        val room = getCurrentRoom()
         val roomKey = getCurrentRoomKey() ?: return false
         val relativePos = worldToRelative(worldPos, room)
         return getBlocksForRoom(roomKey)?.getBlockAt(relativePos)?.isAir == true
@@ -138,6 +171,8 @@ object FMBlocksManager {
         return roomCount to blockCount
     }
 
+    fun getRoomList(): List<String> = roomBlocks.keys.filter { !roomBlocks[it]!!.isEmpty() }.sorted()
+
     fun reloadFromDisk() {
         load()
         loaded = true
@@ -151,6 +186,7 @@ object FMBlocksManager {
     fun onWorldLoad(event: WorldEvent) {
         worldBlockCache.clear()
         lastRoomKey = null
+        simulating = null
         if (!loaded) {
             load()
             loaded = true
@@ -160,8 +196,10 @@ object FMBlocksManager {
     @SubscribeEvent
     fun onTick(event: TickEvent.Start) {
         if (!enabled) return
-        val room = DungeonUtils.currentRoom
+
+        val room = getCurrentRoom()
         val roomKey = getCurrentRoomKey() ?: return
+
         if (roomKey != lastRoomKey) {
             lastRoomKey = roomKey
             worldBlockCache.clear()
@@ -202,7 +240,6 @@ object FMBlocksManager {
         }
     }
 
-    //tried some shit here for lilacs it didnt work
     @SubscribeEvent
     fun onPacketSend(event: PacketEvent.Send) {
         if (!enabled) return

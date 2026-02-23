@@ -41,7 +41,6 @@ object StormBowTimer {
         mc.player?.displayClientMessage(Component.literal("§7[StormBow] $message"), false)
     }
 
-    // Called by mixin
     fun onServerTick() {
         if (!running) return
 
@@ -166,6 +165,11 @@ object StormBowTimer {
 
         if (scheduleTerminatorSwap) {
             if (swapTickDelay > 0) {
+                if (swapTickDelay == 2) {
+                    mc.options.keyUse.isDown = false
+                } else if (swapTickDelay == 1) {
+                    mc.options.keyUse.isDown = true
+                }
                 swapTickDelay--
             } else {
                 RouteUtils.swapToItem("Terminator")

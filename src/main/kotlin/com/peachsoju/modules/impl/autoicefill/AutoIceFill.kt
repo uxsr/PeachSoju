@@ -63,13 +63,13 @@ object AutoIceFill {
 
     fun toggleAuto() {
         autoEnabled = !autoEnabled
-        modMessage("§7Auto Ice Fill: ${if (autoEnabled) "§aON" else "§cOFF"}")
+        RouteUtils.debug("§7Auto Ice Fill: ${if (autoEnabled) "§aON" else "§cOFF"}")
         if (!autoEnabled) stopAuto()
     }
 
     private fun stopAuto(reason: String? = null) {
         if (reason != null && isAutoSolving) {
-            modMessage("§c§lAuto Ice Fill STOPPED: $reason")
+            RouteUtils.debug("§c§lAuto Ice Fill STOPPED: $reason")
         }
         isAutoSolving = false
         autoStarted = false
@@ -138,7 +138,7 @@ object AutoIceFill {
             if (px == wx && pz == wz) {
                 val swapResult = RouteUtils.swapToItem("Aspect of the Void")
                 if (swapResult == SwapResult.FAIL) {
-                    modMessage("§cCould not find Aspect of the Void in hotbar!")
+                    RouteUtils.debug("§cCould not find Aspect of the Void in hotbar!")
                     return
                 }
                 autoStarted = true
@@ -149,7 +149,7 @@ object AutoIceFill {
                 expectedIcePos = null
                 consecutiveFailures = 0
                 currentFloorY = wp.y
-                modMessage("§aAuto triggered at block $i — next step ${i + 1}/${autoPattern.size}")
+                RouteUtils.debug("§aAuto triggered at block $i — next step ${i + 1}/${autoPattern.size}")
                 sendNextClick()
                 return
             }
@@ -181,18 +181,18 @@ object AutoIceFill {
 
             if (expectedBlock != null) {
                 val actualBlock = mc.level?.getBlockState(expectedBlock)?.block
-                modMessage("§eExpected ice at $expectedBlock, found: $actualBlock")
+                RouteUtils.debug("§eExpected ice at $expectedBlock, found: $actualBlock")
                 val movedCorrectly = playerBlock.x == expectedBlock.x && playerBlock.z == expectedBlock.z
                 if (!movedCorrectly) {
                     consecutiveFailures++
-                    modMessage("§eExpected: $expectedBlock, Got: $playerBlock (failure #$consecutiveFailures)")
+                    RouteUtils.debug("§eExpected: $expectedBlock, Got: $playerBlock (failure #$consecutiveFailures)")
 
                     if (consecutiveFailures > MAX_FAILURES) {
                         stopAuto("Block placement failed $consecutiveFailures times")
                         return
                     }
 
-                    modMessage("§ePlayer didn't move, retrying step ${autoStepIndex}/${autoPattern.size}")
+                    RouteUtils.debug("§ePlayer didn't move, retrying step ${autoStepIndex}/${autoPattern.size}")
                     autoStepIndex--
                     waitingForIce = false
                     waitingTicks = 0
@@ -211,7 +211,7 @@ object AutoIceFill {
                 return
             }
 
-            modMessage("§eNo ice update after 5 ticks, forcing next step (failure #$consecutiveFailures)")
+            RouteUtils.debug("§eNo ice update after 5 ticks, forcing next step (failure #$consecutiveFailures)")
             waitingForIce = false
             waitingTicks = 0
             expectedIcePos = null
@@ -262,16 +262,16 @@ object AutoIceFill {
                         currentPatterns.addAll(waypoints)
                     }
 
-                    modMessage("§aFloor $index pattern $patternIndex matched (${waypoints.size} pts)")
+                    RouteUtils.debug("§aFloor $index pattern $patternIndex matched (${waypoints.size} pts)")
                     return@repeat
                 }
             }
-            modMessage("§cFailed to scan floor $index")
+            RouteUtils.debug("§cFailed to scan floor $index")
         }
 
         stupidStairs(this)
         autoPattern = currentPatterns.toList()
-        modMessage("§7autoPattern: ${autoPattern.size} pts total")
+        RouteUtils.debug("§7autoPattern: ${autoPattern.size} pts total")
     }
 
     private fun stupidStairs(room: Room) {
@@ -307,7 +307,7 @@ object AutoIceFill {
         if (!validateState()) return
 
         if (autoStepIndex >= autoPattern.size) {
-            modMessage("§aIce Fill complete!")
+            RouteUtils.debug("§aIce Fill complete!")
             stopAuto()
             return
         }
@@ -324,7 +324,7 @@ object AutoIceFill {
             waitingForIce = false
             waitingTicks = 0
             RightClickHandler.doPacketInteract(InteractionHand.MAIN_HAND, yaw, 25f)
-            modMessage("§7Step ${autoStepIndex + 1}/${autoPattern.size} yaw=§e${"%.0f".format(yaw)} §7pitch=§e25.0 §6STAIR")
+            RouteUtils.debug("§7Step ${autoStepIndex + 1}/${autoPattern.size} yaw=§e${"%.0f".format(yaw)} §7pitch=§e25.0 §6STAIR")
             autoStepIndex++
             stairDelayTicks = 2
             waitingForStairDelay = true
@@ -344,10 +344,10 @@ object AutoIceFill {
             calculateYaw(prevFrom, prevTarget)
         } else null
 
-        modMessage("§7Current yaw: ${"%.0f".format(yaw)}, Previous yaw: ${prevYaw?.let { "%.0f".format(it) } ?: "none"}")
+        RouteUtils.debug("§7Current yaw: ${"%.0f".format(yaw)}, Previous yaw: ${prevYaw?.let { "%.0f".format(it) } ?: "none"}")
 
         RightClickHandler.doPacketInteract(InteractionHand.MAIN_HAND, yaw, 45F)
-        modMessage("§7Step ${autoStepIndex + 1}/${autoPattern.size} yaw=§e${"%.0f".format(yaw)} §7pitch=§e45.0")
+        RouteUtils.debug("§7Step ${autoStepIndex + 1}/${autoPattern.size} yaw=§e${"%.0f".format(yaw)} §7pitch=§e45.0")
         autoStepIndex++
     }
 
@@ -365,7 +365,7 @@ object AutoIceFill {
         waitingForIce = false
         waitingTicks = 0
         expectedIcePos = null
-        modMessage("§7Ice confirmed, sending next click")
+        RouteUtils.debug("§7Ice confirmed, sending next click")
         sendNextClick()
     }
 
@@ -399,13 +399,13 @@ object AutoIceFill {
         currentPatterns.clear()
         autoPattern = emptyList()
         stopAuto()
-        modMessage("§7Ice Fill reset")
+        RouteUtils.debug("§7Ice Fill reset")
     }
 
     private fun Room.isRealAir(pos: BlockPos): Boolean =
         mc.level?.getBlockState(getRealCoords(pos))?.isAir == true
 
-    private fun modMessage(msg: String) {
+    private fun RouteUtils.debug(msg: String) {
         mc.player?.displayClientMessage(Component.literal("§d[PeachSoju] §f$msg"), false)
     }
 
