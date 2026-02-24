@@ -21,6 +21,8 @@ import com.peachsoju.modules.impl.autoss.AutoSS
 //import com.peachsoju.modules.impl.autoss.AutoSSCommand
 import com.peachsoju.modules.impl.fmblocks.FMBlocksCommands
 import com.peachsoju.modules.impl.fmblocks.FMBlocksEditMode
+import com.peachsoju.modules.impl.fmblocks.FMBlocksHighlightRenderer
+import com.peachsoju.modules.impl.fmblocks.FMBlocksHighlights
 import com.peachsoju.modules.impl.fmblocks.FMBlocksManager
 import com.peachsoju.modules.impl.stormbow.StormBowTimer
 import com.peachsoju.utils.handlers.WalkHandler
@@ -58,6 +60,8 @@ object PeachSoju : ModInitializer {
 		eventBus.register(DungeonBreakerListener)
 		eventBus.register(AutoAlign)
 		eventBus.register(WalkHandler)
+		eventBus.register(FMBlocksHighlightRenderer)
+		eventBus.register(FMBlocksHighlights)
 //		eventBus.register(AutoClose)
 //		eventBus.register(SecretAura)
 	}

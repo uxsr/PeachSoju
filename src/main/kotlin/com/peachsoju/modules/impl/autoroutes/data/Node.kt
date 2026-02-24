@@ -17,7 +17,8 @@ data class WaypointNode(
     val toBlock: BlockPos? = null,
     val targetBlock: BlockPos? = null,
     val itemName: String? = null,
-    val mult: Int = 1
+    val mult: Int = 1,
+    val force: Boolean = false
 ) {
     fun copyWith(
         x: Double = this.x, y: Double = this.y, z: Double = this.z, exact: Boolean = this.exact, type: WPType = this.type,
@@ -25,9 +26,9 @@ data class WaypointNode(
         height: Double = this.height, start: Boolean = this.start, delay: Int = this.delay, stop: Boolean = this.stop,
         center: Boolean = this.center, awaitSecret: Int = this.awaitSecret, awaitBat: Boolean = this.awaitBat,
         awaitType: String = this.awaitType, awaitDb: Boolean = this.awaitDb, toBlock: BlockPos? = this.toBlock,
-        targetBlock: BlockPos? = this.targetBlock, itemName: String? = this.itemName, mult: Int = this.mult
+        targetBlock: BlockPos? = this.targetBlock, itemName: String? = this.itemName, mult: Int = this.mult, force: Boolean = this.force
     ): WaypointNode = WaypointNode(
         x, y, z, exact, type, yaw, pitch, chained, radius, height, start,
-        delay, stop, center, awaitSecret, awaitBat, awaitType, awaitDb, toBlock, targetBlock, itemName, mult
+        delay, stop, center, awaitSecret, awaitBat, awaitType, awaitDb, toBlock, targetBlock, itemName, mult,force
     )
 }

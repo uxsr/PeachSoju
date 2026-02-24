@@ -274,9 +274,13 @@ object Autoroutes {
             if (!intersectsNode(landingPos, nodeWorldPos, node.radius, node.height)) continue
 
             if (!config.configMode() && !RouteState.routeActive) {
-                if (!node.start) continue
-                RouteState.routeActive = true
-                RouteUtils.debug("§a[Route] Activated from start node #$nodeIndex (post-teleport)")
+                if (!node.start && !node.force) continue
+                if (node.start) {
+                    RouteState.routeActive = true
+                    RouteUtils.debug("§a[Route] Activated from start node #$nodeIndex (post-teleport)")
+                } else {
+                    RouteUtils.debug("§a[Route] Force-executing node #$nodeIndex (post-teleport)")
+                }
             }
 
             RouteUtils.debug("§b>>> Post-teleport triggered node #$nodeIndex (${node.type})")
@@ -344,9 +348,13 @@ object Autoroutes {
             }
 
             if (!config.configMode() && !RouteState.routeActive) {
-                if (!node.start) continue
-                RouteState.routeActive = true
-                RouteUtils.debug("§a[Route] Activated from start node #$index")
+                if (!node.start && !node.force) continue
+                if (node.start) {
+                    RouteState.routeActive = true
+                    RouteUtils.debug("§a[Route] Activated from start node #$index")
+                } else {
+                    RouteUtils.debug("§a[Route] Force-executing node #$index")
+                }
             }
 
             RouteUtils.debug("§b>>> Triggered node #$index (${node.type})")

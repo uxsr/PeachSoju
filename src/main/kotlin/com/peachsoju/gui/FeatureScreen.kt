@@ -192,11 +192,14 @@ abstract class FeatureScreen(
         val screenProgress: Float
         val screenAlpha: Float
 
+        val slideOffset: Int
         if (isClosing) {
             val closeElapsed = (currentTime - closeStartTime).toFloat()
             val closeProgress = (closeElapsed / SCREEN_CLOSE_DURATION).coerceIn(0f, 1f)
-            screenProgress = 1f - Easing.easeOutQuad(closeProgress)
+            val easedClose = Easing.easeOutCubic(closeProgress)
+            screenProgress = 1f
             screenAlpha = 1f - closeProgress
+            slideOffset = (easedClose * 50).toInt()
 
             if (closeProgress >= 1f) {
                 Minecraft.getInstance().setScreen(parent)
@@ -206,6 +209,7 @@ abstract class FeatureScreen(
             val openElapsed = (currentTime - screenOpenTime).toFloat()
             screenProgress = Easing.easeOutBack((openElapsed / SCREEN_OPEN_DURATION).coerceIn(0f, 1f))
             screenAlpha = Easing.easeOutQuad((openElapsed / (SCREEN_OPEN_DURATION * 0.5f)).coerceIn(0f, 1f))
+            slideOffset = 0
         }
 
         animatedScrollY = lerp(animatedScrollY, scrollY.toFloat(), SCROLL_LERP_SPEED)
@@ -213,12 +217,17 @@ abstract class FeatureScreen(
         val bgAlpha = (screenAlpha * 0.67f * 255).toInt().coerceIn(0, 255)
         graphics.fill(0, 0, width, height, (bgAlpha shl 24))
 
+        val originalGuiLeft = guiLeft
+        guiLeft += slideOffset
+
         drawPanel(graphics, screenAlpha, screenProgress)
         drawHeader(graphics, mouseX, mouseY, screenAlpha)
         drawContent(graphics, mouseX, mouseY, screenAlpha)
         drawFooter(graphics, screenAlpha)
 
-        if (blockDropdownOpen && screenProgress > 0.9f) {
+        guiLeft = originalGuiLeft
+
+        if (blockDropdownOpen && screenProgress > 0.9f && !isClosing) {
             drawBlockDropdown(graphics, mouseX, mouseY)
         }
 

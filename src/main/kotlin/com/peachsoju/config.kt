@@ -60,7 +60,8 @@ object config {
         var autoAlignForceDevice: Boolean = false,
         var autoAlignDelay: Int = 0,
         var espStartNodesDepthTest: Boolean = false,
-        var legacyAnimationsExpanded: Boolean = true
+        var legacyAnimationsExpanded: Boolean = true,
+        var hideServerID: Boolean = false
     )
 
     @Volatile private var data = Data()
@@ -234,6 +235,10 @@ object config {
     fun toggleAutoAlignForceDevice() = (!data.autoAlignForceDevice).also { data.autoAlignForceDevice = it; save() }
     fun autoAlignDelay() = data.autoAlignDelay
     fun setAutoAlignDelay(v: Int) { data.autoAlignDelay = v; save() }
+
+    fun hideServerID() = data.hideServerID
+    fun setHideServerID(v: Boolean) { data.hideServerID = v; save() }
+    fun toggleHideServerID() = (!data.hideServerID).also { data.hideServerID = it; save() }
 
     fun setAutoIceFill(v: Boolean) {
         data.autoIceFill = v

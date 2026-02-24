@@ -13,7 +13,8 @@
 		"ClientPacketListenerMixin",
 		"IMixinClientLevel",
 		"MixinLocalPlayer",
-		"MixinItemInHandRenderer"
+		"MixinItemInHandRenderer",
+		"ServerIDSpooferMixin"
 
 
 	],

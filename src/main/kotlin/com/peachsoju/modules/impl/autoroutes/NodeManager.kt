@@ -237,6 +237,7 @@ object  NodeManager {
             "item" -> node.copyWith(itemName = value)
             "mult" -> node.copyWith(mult = value?.toIntOrNull()?.coerceIn(1, 10) ?: 1)
             "db", "awaitdb" -> node.copyWith(awaitDb = value?.toBooleanStrictOrNull() ?: !node.awaitDb)
+            "force" -> node.copyWith(force = value?.toBooleanStrictOrNull() ?: !node.force)
             else -> return "§c[AR] Unknown modifier: $modifier"
         }
 
@@ -581,6 +582,7 @@ object  NodeManager {
                 part.startsWith("radius:") -> modifiers["radius"] = part.substringAfter("radius:")
                 part.startsWith("height:") -> modifiers["height"] = part.substringAfter("height:")
                 part.startsWith("mult:") -> modifiers["mult"] = part.substringAfter("mult:")
+                part == "force" -> modifiers["force"] = "true"
             }
         }
 
@@ -623,7 +625,8 @@ object  NodeManager {
             toBlock = null,
             targetBlock = relTargetBlock,
             itemName = modifiers["item"],
-            mult = modifiers["mult"]?.toIntOrNull()?.coerceIn(1, 10) ?: 1
+            mult = modifiers["mult"]?.toIntOrNull()?.coerceIn(1, 10) ?: 1,
+            force = modifiers.containsKey("force")
         )
     }
 
@@ -655,6 +658,7 @@ object  NodeManager {
         if (node.delay > 0) parts.add("delay:${node.delay}")
         if (node.itemName != null) parts.add("item:${node.itemName}")
         if (node.mult > 1) parts.add("mult:${node.mult}")
+        if (node.force) parts.add("force")
         return if (parts.isEmpty()) "" else " §8[${parts.joinToString(", ")}]"
     }
 
@@ -732,6 +736,7 @@ object  NodeManager {
                 obj.addProperty("awaitType", node.awaitType)
                 obj.addProperty("awaitDb", node.awaitDb)
                 obj.addProperty("mult", node.mult)
+                obj.addProperty("force", node.force)
 
                 node.toBlock?.let { tb ->
                     obj.add(
@@ -807,7 +812,8 @@ object  NodeManager {
                         toBlock = toBlock,
                         targetBlock = targetBlock,
                         itemName = str("itemName"),
-                        mult = obj.get("mult")?.asInt ?: 1
+                        mult = obj.get("mult")?.asInt ?: 1,
+                        force = bool("force")
                     )
                 )
                 waypoints[roomName] = nodes

@@ -81,7 +81,8 @@ class AnimatedPeachSojuScreen : Screen(Component.literal("PeachSoju")) {
         FeatureCard("Auto Ice Fill", "Ice Fill puzzle solver", { config.autoIceFill() }, { openScreen(AutoIceFillScreen(this)) }),
         FeatureCard("Auto Align", "Arrow alignment solver", { config.autoAlign() }, { openScreen(AutoAlignScreen(this)) }),
         FeatureCard("Storm Bow Timer", "Erectile Dysfunction", { config.stormBowTimer() }, { openScreen(StormBowTimerScreen(this)) }),
-        FeatureCard("Legacy Animations", "1.8.9 animations", { config.stormLegacyAnimation() }, { openScreen(LegacyAnimationsScreen(this)) })
+        FeatureCard("Legacy Animations", "1.8.9 animations", { config.stormLegacyAnimation() }, { openScreen(LegacyAnimationsScreen(this)) }),
+        FeatureCard("Misc", "Miscellaneous settings", { config.hideServerID() }, { openScreen(MiscScreen(this)) })
     )
 
     override fun init() {
@@ -109,11 +110,14 @@ class AnimatedPeachSojuScreen : Screen(Component.literal("PeachSoju")) {
         val screenProgress: Float
         val screenAlpha: Float
 
+        val slideOffset: Int
         if (isClosing) {
             val closeElapsed = (currentTime - closeStartTime).toFloat()
             val closeProgress = (closeElapsed / SCREEN_CLOSE_DURATION).coerceIn(0f, 1f)
-            screenProgress = 1f - Easing.easeOutQuad(closeProgress)
+            val easedClose = Easing.easeOutCubic(closeProgress)
+            screenProgress = 1f
             screenAlpha = 1f - closeProgress
+            slideOffset = (easedClose * 50).toInt()
 
             if (closeProgress >= 1f) {
                 pendingScreen?.let { Minecraft.getInstance().setScreen(it) }
@@ -124,6 +128,7 @@ class AnimatedPeachSojuScreen : Screen(Component.literal("PeachSoju")) {
             val openElapsed = (currentTime - screenOpenTime).toFloat()
             screenProgress = Easing.easeOutBack((openElapsed / SCREEN_OPEN_DURATION).coerceIn(0f, 1f))
             screenAlpha = Easing.easeOutQuad((openElapsed / (SCREEN_OPEN_DURATION * 0.6f)).coerceIn(0f, 1f))
+            slideOffset = 0
         }
 
         animatedScrollY = lerp(animatedScrollY, scrollY.toFloat(), SCROLL_LERP_SPEED)
@@ -134,10 +139,15 @@ class AnimatedPeachSojuScreen : Screen(Component.literal("PeachSoju")) {
         val bgAlpha = (screenAlpha * 0.67f * 255).toInt().coerceIn(0, 255)
         graphics.fill(0, 0, width, height, (bgAlpha shl 24))
 
+        val originalGuiLeft = guiLeft
+        guiLeft += slideOffset
+
         drawPanel(graphics, screenAlpha, screenProgress)
         drawHeader(graphics, screenAlpha)
         drawFeatureCards(graphics, mouseX, mouseY, screenAlpha)
         drawFooter(graphics, screenAlpha)
+
+        guiLeft = originalGuiLeft
 
         super.render(graphics, mouseX, mouseY, partialTick)
     }
