@@ -297,7 +297,6 @@ object Autoroutes {
         RouteState.fullReset()
         SneakHandler.releaseSneak()
         BatListener.cancel()
-        WalkHandler.reset()
         DungeonBreakerListener.cancel()
         NodeManager.reloadFromDisk()
         pendingEtherwarps.clear()

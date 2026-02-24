@@ -55,9 +55,27 @@ object FMBlocksHighlights {
         loaded = true
     }
 
-    fun getHighlight(itemId: String): BlockHighlight? = highlights[itemId]
-    fun getAllHighlights(): List<BlockHighlight> = highlights.values.toList()
-    fun getEnabledHighlights(): List<BlockHighlight> = highlights.values.filter { it.enabled }
+    fun getHighlight(itemId: String): BlockHighlight? {
+        ensureLoaded()
+        return highlights[itemId]
+    }
+
+    fun getAllHighlights(): List<BlockHighlight> {
+        ensureLoaded()
+        return highlights.values.toList()
+    }
+
+    fun getEnabledHighlights(): List<BlockHighlight> {
+        ensureLoaded()
+        return highlights.values.filter { it.enabled }
+    }
+
+    private fun ensureLoaded() {
+        if (!loaded) {
+            load()
+            loaded = true
+        }
+    }
 
     fun addHighlight(itemId: String, color: HighlightColor = HighlightColor()): BlockHighlight {
         val highlight = BlockHighlight(itemId, true, color)
