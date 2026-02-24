@@ -5,7 +5,7 @@ import com.peachsoju.modules.impl.autoroutes.data.WPType
 import com.odtheking.odin.utils.Color
 
 enum class RenderStyle(val displayName: String) {
-    PULSE_PYRAMID("Pulse Pyramid"),
+    PULSE_PYRAMID("Pyramid thing"),
     WIREFRAME("Wireframe"),
     FILLED("Filled"),
     CORNER_BOX("Corner Box"),

@@ -27,14 +27,15 @@ object FMBlocksHighlights {
     data class BlockHighlight(
         var itemId: String,
         var enabled: Boolean = true,
-        var color: HighlightColor = HighlightColor()
+        var color: HighlightColor = HighlightColor(),
+        var etherActivate: Boolean = false
     ) {
         fun getItem(): Item? {
             val loc = ResourceLocation.tryParse(itemId) ?: return null
             val item = BuiltInRegistries.ITEM.getValue(loc)
             return if (item != Items.AIR || itemId == "minecraft:air") item else null
         }
-        fun copy() = BlockHighlight(itemId, enabled, color.copy())
+        fun copy() = BlockHighlight(itemId, enabled, color.copy(), etherActivate)
     }
 
     private val highlights = mutableMapOf<String, BlockHighlight>()
@@ -103,6 +104,18 @@ object FMBlocksHighlights {
         }
     }
 
+    fun setEtherActivate(itemId: String, enabled: Boolean) {
+        highlights[itemId]?.let {
+            it.etherActivate = enabled
+            save()
+        }
+    }
+
+    fun getEtherActivateHighlights(): List<BlockHighlight> {
+        ensureLoaded()
+        return highlights.values.filter { it.enabled && it.etherActivate }
+    }
+
     fun isHighlighted(itemId: String): Boolean = highlights[itemId]?.enabled == true
 
     fun resetToDefaults() {
@@ -134,6 +147,7 @@ object FMBlocksHighlights {
                 addProperty("g", highlight.color.g)
                 addProperty("b", highlight.color.b)
                 addProperty("a", highlight.color.a)
+                addProperty("etherActivate", highlight.etherActivate)
             }
             array.add(obj)
         }
@@ -160,8 +174,9 @@ object FMBlocksHighlights {
             val g = obj.get("g")?.asInt ?: 255
             val b = obj.get("b")?.asInt ?: 255
             val a = obj.get("a")?.asFloat ?: 0.5f
+            val etherActivate = obj.get("etherActivate")?.asBoolean ?: false
 
-            highlights[itemId] = BlockHighlight(itemId, enabled, HighlightColor(r, g, b, a))
+            highlights[itemId] = BlockHighlight(itemId, enabled, HighlightColor(r, g, b, a), etherActivate)
         }
     }
 }

@@ -30,6 +30,8 @@ class FMBlocksHighlightsScreen(parent: Screen?) : Screen(Component.literal("Bloc
 
         private const val TOGGLE_ON = 0xFF7CB342.toInt()
         private const val TOGGLE_OFF = 0xFFB85C5C.toInt()
+        private const val ETHER_ON = 0xFF5599FF.toInt()
+        private const val ETHER_OFF = 0xFF445566.toInt()
 
         private const val GUI_WIDTH = 320
         private const val GUI_HEIGHT = 300
@@ -71,11 +73,9 @@ class FMBlocksHighlightsScreen(parent: Screen?) : Screen(Component.literal("Bloc
     private val cardEntryProgress = mutableMapOf<Int, Float>()
     private var backButtonHover = 0f
 
-    // Color picker state
     private var colorPicker: ColorPickerPopup? = null
     private var editingItemId: String? = null
 
-    // Add item state
     private var searchText = ""
     private var searchActive = false
     private var filteredItems: List<Item> = emptyList()
@@ -98,7 +98,7 @@ class FMBlocksHighlightsScreen(parent: Screen?) : Screen(Component.literal("Bloc
 
     private fun recomputeMaxScroll() {
         val highlights = FMBlocksHighlights.getAllHighlights()
-        val contentHeight = (highlights.size + 1) * ROW_HEIGHT // +1 for add button
+        val contentHeight = (highlights.size + 1) * ROW_HEIGHT
         val viewHeight = GUI_HEIGHT - HEADER_HEIGHT - FOOTER_HEIGHT - (PADDING * 2)
         maxScroll = max(0, contentHeight - viewHeight)
         scrollY = scrollY.coerceIn(0, max(0, maxScroll))
@@ -168,7 +168,6 @@ class FMBlocksHighlightsScreen(parent: Screen?) : Screen(Component.literal("Bloc
 
         guiLeft = originalGuiLeft
 
-        // Draw color picker on top
         colorPicker?.render(graphics, mouseX, mouseY)
 
         super.render(graphics, mouseX, mouseY, partialTick)
@@ -180,7 +179,6 @@ class FMBlocksHighlightsScreen(parent: Screen?) : Screen(Component.literal("Bloc
         val animatedLeft = guiLeft + (GUI_WIDTH - animatedWidth) / 2
         val animatedTop = guiTop + (GUI_HEIGHT - animatedHeight) / 2
 
-        // Glow effect
         for (i in 1..3) {
             val glowAlpha = alpha * (0.12f / i)
             val glowColor = withAlpha(PEACH_MEDIUM, glowAlpha)
@@ -203,7 +201,6 @@ class FMBlocksHighlightsScreen(parent: Screen?) : Screen(Component.literal("Bloc
     private fun drawHeader(graphics: GuiGraphics, mouseX: Int, mouseY: Int, alpha: Float) {
         graphics.fill(guiLeft, guiTop, guiLeft + GUI_WIDTH, guiTop + HEADER_HEIGHT, withAlpha(PEACH_MEDIUM, alpha))
 
-        // Back button
         val backText = "← Back"
         val backWidth = font.width(backText) + 10
         val backX = guiLeft + 5
@@ -273,10 +270,8 @@ class FMBlocksHighlightsScreen(parent: Screen?) : Screen(Component.literal("Bloc
         val bgColor = lerpColor(PEACH_CREAM, PEACH_GLOW, newHover)
         val yOffset = (-newHover * 1).toInt()
 
-        // Row background
         graphics.fill(x, y + yOffset, x + width, y + ROW_HEIGHT + yOffset - 2, withAlpha(bgColor, alpha))
 
-        // Enable/disable toggle
         val toggleX = x + 5
         val toggleY = y + 6 + yOffset
         val toggleW = 30
@@ -289,7 +284,6 @@ class FMBlocksHighlightsScreen(parent: Screen?) : Screen(Component.literal("Bloc
         val knobX = toggleX + 2 + (if (highlight.enabled) toggleW - 14 else 0)
         graphics.fill(knobX, toggleY + 2, knobX + 10, toggleY + toggleH - 2, withAlpha(0xFFFFFFFF.toInt(), alpha))
 
-        // Item name
         val item = highlight.getItem()
         val itemName = item?.let {
             BuiltInRegistries.ITEM.getKey(it).toString().removePrefix("minecraft:").replace("_", " ")
@@ -297,13 +291,21 @@ class FMBlocksHighlightsScreen(parent: Screen?) : Screen(Component.literal("Bloc
         val truncatedName = if (itemName.length > 18) itemName.take(15) + "..." else itemName
         graphics.drawString(font, truncatedName, toggleX + toggleW + 10, y + 9 + yOffset, withAlpha(TEXT_DARK, alpha), false)
 
-        // Color preview box
-        val colorX = x + width - 70
+        val deleteX = x + width - 35
+        val deleteY = y + 5 + yOffset
+        val deleteW = 25
+        val deleteH = 16
+
+        val etherBtnX = x + width - 63
+        val etherBtnY = y + 5 + yOffset
+        val etherBtnW = 25
+        val etherBtnH = 16
+
+        val colorX = x + width - 98
         val colorY = y + 5 + yOffset
         val colorW = 25
         val colorH = 16
 
-        // Checkerboard for alpha
         val checkSize = 4
         for (cy in 0 until colorH step checkSize) {
             for (cx in 0 until colorW step checkSize) {
@@ -312,15 +314,20 @@ class FMBlocksHighlightsScreen(parent: Screen?) : Screen(Component.literal("Bloc
                 graphics.fill(colorX + cx, colorY + cy, colorX + cx + checkSize, colorY + cy + checkSize, withAlpha(checkColor, alpha))
             }
         }
-
         graphics.fill(colorX, colorY, colorX + colorW, colorY + colorH, withAlpha(highlight.color.toArgb(), alpha))
         graphics.fill(colorX - 1, colorY - 1, colorX + colorW + 1, colorY + colorH + 1, withAlpha(PEACH_DARK, alpha * 0.5f))
 
-        // Delete button
-        val deleteX = x + width - 35
-        val deleteY = y + 5 + yOffset
-        val deleteW = 25
-        val deleteH = 16
+        val etherHoverKey = "ether_$index"
+        val etherHover = mouseX in etherBtnX..(etherBtnX + etherBtnW) && mouseY in etherBtnY..(etherBtnY + etherBtnH) && !isClosing && colorPicker == null
+        val targetEtherHover = if (etherHover) 1f else 0f
+        val currentEtherHover = hoverProgress.getOrDefault(etherHoverKey, 0f)
+        val newEtherHover = lerp(currentEtherHover, targetEtherHover, HOVER_LERP_SPEED)
+        hoverProgress[etherHoverKey] = newEtherHover
+
+        val etherBaseColor = if (highlight.etherActivate) ETHER_ON else ETHER_OFF
+        val etherColor = lerpColor(etherBaseColor, brighten(etherBaseColor, 30), newEtherHover)
+        graphics.fill(etherBtnX, etherBtnY, etherBtnX + etherBtnW, etherBtnY + etherBtnH, withAlpha(etherColor, alpha))
+        graphics.drawString(font, "⚡", etherBtnX + 9, etherBtnY + 4, withAlpha(TEXT_LIGHT, alpha), false)
 
         val deleteHoverKey = "delete_$index"
         val deleteHover = mouseX in deleteX..(deleteX + deleteW) && mouseY in deleteY..(deleteY + deleteH) && !isClosing && colorPicker == null
@@ -339,7 +346,6 @@ class FMBlocksHighlightsScreen(parent: Screen?) : Screen(Component.literal("Bloc
         graphics.fill(guiLeft, footerY, guiLeft + GUI_WIDTH, guiTop + GUI_HEIGHT, withAlpha(PEACH_LIGHT, alpha))
         graphics.fill(guiLeft + PADDING, footerY + 2, guiLeft + GUI_WIDTH - PADDING, footerY + 3, withAlpha(PEACH_MEDIUM, alpha))
 
-        // Search field to add new items
         val searchX = guiLeft + PADDING + 5
         val searchY = footerY + 10
         val searchW = GUI_WIDTH - PADDING * 2 - 80
@@ -364,7 +370,6 @@ class FMBlocksHighlightsScreen(parent: Screen?) : Screen(Component.literal("Bloc
         }
         graphics.drawString(font, displayText, searchX + 4, searchY + 6, withAlpha(TEXT_DARK, alpha), false)
 
-        // Reset button
         val resetX = searchX + searchW + 10
         val resetY = searchY
         val resetW = 55
@@ -393,7 +398,6 @@ class FMBlocksHighlightsScreen(parent: Screen?) : Screen(Component.literal("Bloc
         val maxVisible = 6
         val dropdownH = min(filteredItems.size, maxVisible) * itemHeight
 
-        // Shadow
         graphics.fill(searchX + 2, dropdownY + 2, searchX + dropdownW + 2, dropdownY + dropdownH + 2, 0x40000000)
 
         graphics.fill(searchX - 1, dropdownY - 1, searchX + dropdownW + 1, dropdownY + dropdownH + 1, PEACH_DARK)
@@ -427,20 +431,17 @@ class FMBlocksHighlightsScreen(parent: Screen?) : Screen(Component.literal("Bloc
         val mouseY = event.y().toInt()
         if (event.button() != 0) return super.mouseClicked(event, bl)
 
-        // Handle color picker first
         colorPicker?.let { picker ->
             if (picker.isInside(mouseX, mouseY)) {
                 picker.mouseClicked(mouseX, mouseY, 0)
                 return true
             } else {
-                // Click outside picker - cancel
                 colorPicker = null
                 editingItemId = null
                 return true
             }
         }
 
-        // Back button
         val backText = "← Back"
         val backWidth = font.width(backText) + 10
         val backX = guiLeft + 5
@@ -452,7 +453,6 @@ class FMBlocksHighlightsScreen(parent: Screen?) : Screen(Component.literal("Bloc
             return true
         }
 
-        // Handle dropdown
         if (dropdownOpen) {
             val footerY = guiTop + GUI_HEIGHT - FOOTER_HEIGHT
             val searchX = guiLeft + PADDING + 5
@@ -485,7 +485,6 @@ class FMBlocksHighlightsScreen(parent: Screen?) : Screen(Component.literal("Bloc
             return true
         }
 
-        // Search field
         val footerY = guiTop + GUI_HEIGHT - FOOTER_HEIGHT
         val searchX = guiLeft + PADDING + 5
         val searchY = footerY + 10
@@ -498,7 +497,6 @@ class FMBlocksHighlightsScreen(parent: Screen?) : Screen(Component.literal("Bloc
             return true
         }
 
-        // Reset button
         val resetX = searchX + searchW + 10
         val resetY = searchY
         val resetW = 55
@@ -510,7 +508,6 @@ class FMBlocksHighlightsScreen(parent: Screen?) : Screen(Component.literal("Bloc
             return true
         }
 
-        // Highlight rows
         val contentLeft = guiLeft + PADDING
         val contentTop = guiTop + HEADER_HEIGHT + PADDING
         val contentBottom = guiTop + GUI_HEIGHT - FOOTER_HEIGHT - PADDING
@@ -522,7 +519,6 @@ class FMBlocksHighlightsScreen(parent: Screen?) : Screen(Component.literal("Bloc
 
             for ((index, highlight) in highlights.withIndex()) {
                 if (mouseY >= y && mouseY < y + ROW_HEIGHT) {
-                    // Toggle
                     val toggleX = contentLeft + 5
                     val toggleY = y + 6
                     val toggleW = 30
@@ -533,8 +529,7 @@ class FMBlocksHighlightsScreen(parent: Screen?) : Screen(Component.literal("Bloc
                         return true
                     }
 
-                    // Color box
-                    val colorX = contentLeft + contentWidth - 70
+                    val colorX = contentLeft + contentWidth - 98
                     val colorY = y + 5
                     val colorW = 25
                     val colorH = 16
@@ -544,7 +539,16 @@ class FMBlocksHighlightsScreen(parent: Screen?) : Screen(Component.literal("Bloc
                         return true
                     }
 
-                    // Delete button
+                    val etherBtnX = contentLeft + contentWidth - 63
+                    val etherBtnY = y + 5
+                    val etherBtnW = 25
+                    val etherBtnH = 16
+                    if (mouseX in etherBtnX..(etherBtnX + etherBtnW) && mouseY in etherBtnY..(etherBtnY + etherBtnH)) {
+                        FMBlocksHighlights.setEtherActivate(highlight.itemId, !highlight.etherActivate)
+                        playClick()
+                        return true
+                    }
+
                     val deleteX = contentLeft + contentWidth - 35
                     val deleteY = y + 5
                     val deleteW = 25
@@ -622,7 +626,7 @@ class FMBlocksHighlightsScreen(parent: Screen?) : Screen(Component.literal("Bloc
             }
         }
 
-        if (event.key() == 256) { // Escape
+        if (event.key() == 256) {
             if (colorPicker != null) {
                 colorPicker = null
                 editingItemId = null
@@ -639,7 +643,7 @@ class FMBlocksHighlightsScreen(parent: Screen?) : Screen(Component.literal("Bloc
 
         if (searchActive) {
             when (event.key()) {
-                259 -> { // Backspace
+                259 -> {
                     if (searchText.isNotEmpty()) {
                         searchText = searchText.dropLast(1)
                         updateFilteredItems()
@@ -647,7 +651,7 @@ class FMBlocksHighlightsScreen(parent: Screen?) : Screen(Component.literal("Bloc
                     }
                     return true
                 }
-                257, 335 -> { // Enter
+                257, 335 -> {
                     if (filteredItems.isNotEmpty()) {
                         val item = filteredItems[0]
                         val itemId = BuiltInRegistries.ITEM.getKey(item).toString()
