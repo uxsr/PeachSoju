@@ -67,6 +67,7 @@ object SecretListener {
         }
     }
 
+
     @SubscribeEvent
     fun onItemPickup(event: ItemPickupEvent) {
         if (RouteState.awaitingSecrets <= 0) return

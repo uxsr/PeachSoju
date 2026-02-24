@@ -36,13 +36,35 @@ object FMBlocksManager {
     private var reapplyTickCounter = 0
     private const val reapplyInterval = 5
 
+    private const val FMBLOCKS_FILE = "fmblocks.json"
+    private const val BOSS_FMBLOCKS_FILE = "boss_fmblocks.json"
+
     private val roomBlocks = mutableMapOf<String, FMBlocksRoomData>()
+    private val bossRoomBlocks = mutableMapOf<String, FMBlocksRoomData>()
     private val worldBlockCache = mutableMapOf<BlockPos, BlockState>()
     private var lastRoomKey: String? = null
     private var loaded = false
 
     var simulating: String? = null
         private set
+
+    /**
+     * Determines if a room key represents a boss room.
+     * Boss rooms typically follow patterns like "boss_1", "boss_2", etc.
+     */
+    private fun isBossRoom(roomKey: String): Boolean {
+        val lowerKey = roomKey.lowercase()
+        return lowerKey.startsWith("boss_") ||
+                lowerKey.startsWith("boss ") ||
+                lowerKey == "boss"
+    }
+
+    /**
+     * Gets the appropriate block map for a room key.
+     */
+    private fun getBlockMapForRoom(roomKey: String): MutableMap<String, FMBlocksRoomData> {
+        return if (isBossRoom(roomKey)) bossRoomBlocks else roomBlocks
+    }
 
     fun setSimulating(roomKey: String?) {
         simulating = roomKey
@@ -57,10 +79,14 @@ object FMBlocksManager {
         }
     }
 
-    fun getBlocksForRoom(roomKey: String): FMBlocksRoomData? = roomBlocks[roomKey]
+    fun getBlocksForRoom(roomKey: String): FMBlocksRoomData? {
+        return bossRoomBlocks[roomKey] ?: roomBlocks[roomKey]
+    }
 
-    fun getOrCreateBlocksForRoom(roomKey: String): FMBlocksRoomData =
-        roomBlocks.getOrPut(roomKey) { FMBlocksRoomData() }
+    fun getOrCreateBlocksForRoom(roomKey: String): FMBlocksRoomData {
+        val blockMap = getBlockMapForRoom(roomKey)
+        return blockMap.getOrPut(roomKey) { FMBlocksRoomData() }
+    }
 
     fun getCurrentRoomKey(): String? {
         if (simulating != null) return simulating
@@ -159,19 +185,38 @@ object FMBlocksManager {
 
     fun clearCurrentRoom() {
         val roomKey = getCurrentRoomKey() ?: return
-        roomBlocks[roomKey]?.clear()
+        val blockMap = getBlockMapForRoom(roomKey)
+        blockMap[roomKey]?.clear()
         save()
         worldBlockCache.clear()
         RouteUtils.debug("§e[FMBlocks] Cleared all blocks in $roomKey")
     }
 
     fun getStats(): Pair<Int, Int> {
+        val normalRoomCount = roomBlocks.count { !it.value.isEmpty() }
+        val bossRoomCount = bossRoomBlocks.count { !it.value.isEmpty() }
+        val normalBlockCount = roomBlocks.values.sumOf { data -> data.blocks.values.sumOf { it.size } }
+        val bossBlockCount = bossRoomBlocks.values.sumOf { data -> data.blocks.values.sumOf { it.size } }
+        return (normalRoomCount + bossRoomCount) to (normalBlockCount + bossBlockCount)
+    }
+
+    fun getBossStats(): Pair<Int, Int> {
+        val roomCount = bossRoomBlocks.count { !it.value.isEmpty() }
+        val blockCount = bossRoomBlocks.values.sumOf { data -> data.blocks.values.sumOf { it.size } }
+        return roomCount to blockCount
+    }
+
+    fun getNormalStats(): Pair<Int, Int> {
         val roomCount = roomBlocks.count { !it.value.isEmpty() }
         val blockCount = roomBlocks.values.sumOf { data -> data.blocks.values.sumOf { it.size } }
         return roomCount to blockCount
     }
 
-    fun getRoomList(): List<String> = roomBlocks.keys.filter { !roomBlocks[it]!!.isEmpty() }.sorted()
+    fun getRoomList(): List<String> {
+        val normalRooms = roomBlocks.keys.filter { !roomBlocks[it]!!.isEmpty() }
+        val bossRooms = bossRoomBlocks.keys.filter { !bossRoomBlocks[it]!!.isEmpty() }
+        return (normalRooms + bossRooms).sorted()
+    }
 
     fun reloadFromDisk() {
         load()
@@ -179,7 +224,8 @@ object FMBlocksManager {
         worldBlockCache.clear()
         lastRoomKey = null
         val (rooms, blocks) = getStats()
-        RouteUtils.debug("§a[FMBlocks] Reloaded $blocks blocks from $rooms rooms")
+        val (bossRooms, bossBlocks) = getBossStats()
+        RouteUtils.debug("§a[FMBlocks] Reloaded $blocks blocks from $rooms rooms ($bossRooms boss rooms with $bossBlocks blocks)")
     }
 
     @SubscribeEvent
@@ -296,38 +342,101 @@ object FMBlocksManager {
     }
 
     private fun save() {
+        saveNormalBlocks()
+        saveBossBlocks()
+    }
+
+    private fun saveNormalBlocks() {
         val json = JsonObject()
         roomBlocks.forEach { (roomName, data) ->
             if (data.isEmpty()) return@forEach
-            val roomArray = JsonArray()
-
-            for ((state, positions) in data.blocks) {
-                if (positions.isEmpty()) continue
-                val blockObj = JsonObject()
-                blockObj.addProperty("state", serializeBlockState(state))
-
-                val posArray = JsonArray()
-                for (pos in positions) {
-                    val posObj = JsonObject()
-                    posObj.addProperty("x", pos.x)
-                    posObj.addProperty("y", pos.y)
-                    posObj.addProperty("z", pos.z)
-                    posArray.add(posObj)
-                }
-                blockObj.add("positions", posArray)
-                roomArray.add(blockObj)
-            }
-
+            val roomArray = serializeRoomData(data)
             if (roomArray.size() > 0) json.add(roomName, roomArray)
         }
-        FileHandler.writeToFile("fmblocks.json", json)
+        FileHandler.writeToFile(FMBLOCKS_FILE, json)
+    }
+
+    private fun saveBossBlocks() {
+        val json = JsonObject()
+        bossRoomBlocks.forEach { (roomName, data) ->
+            if (data.isEmpty()) return@forEach
+            val roomArray = serializeRoomData(data)
+            if (roomArray.size() > 0) json.add(roomName, roomArray)
+        }
+        FileHandler.writeToFile(BOSS_FMBLOCKS_FILE, json)
+    }
+
+    private fun serializeRoomData(data: FMBlocksRoomData): JsonArray {
+        val roomArray = JsonArray()
+        for ((state, positions) in data.blocks) {
+            if (positions.isEmpty()) continue
+            val blockObj = JsonObject()
+            blockObj.addProperty("state", serializeBlockState(state))
+
+            val posArray = JsonArray()
+            for (pos in positions) {
+                val posObj = JsonObject()
+                posObj.addProperty("x", pos.x)
+                posObj.addProperty("y", pos.y)
+                posObj.addProperty("z", pos.z)
+                posArray.add(posObj)
+            }
+            blockObj.add("positions", posArray)
+            roomArray.add(blockObj)
+        }
+        return roomArray
     }
 
     private fun load() {
-        val json = FileHandler.readFromFile("fmblocks.json")
+        loadNormalBlocks()
+        loadBossBlocks()
+    }
+
+    private fun loadNormalBlocks() {
+        val json = FileHandler.readFromFile(FMBLOCKS_FILE)
         roomBlocks.clear()
 
         json.entrySet().forEach { (roomName, element) ->
+            if (isBossRoom(roomName)) return@forEach
+
+            val data = deserializeRoomData(element)
+            if (data != null && !data.isEmpty()) {
+                roomBlocks[roomName] = data
+            }
+        }
+    }
+
+    private fun loadBossBlocks() {
+        val json = FileHandler.readFromFile(BOSS_FMBLOCKS_FILE)
+        bossRoomBlocks.clear()
+
+        json.entrySet().forEach { (roomName, element) ->
+            val data = deserializeRoomData(element)
+            if (data != null && !data.isEmpty()) {
+                bossRoomBlocks[roomName] = data
+            }
+        }
+
+        val normalJson = FileHandler.readFromFile(FMBLOCKS_FILE)
+        var migrated = false
+        normalJson.entrySet().forEach { (roomName, element) ->
+            if (isBossRoom(roomName) && !bossRoomBlocks.containsKey(roomName)) {
+                val data = deserializeRoomData(element)
+                if (data != null && !data.isEmpty()) {
+                    bossRoomBlocks[roomName] = data
+                    migrated = true
+                    RouteUtils.debug("§e[FMBlocks] Migrated boss room '$roomName' to boss_fmblocks.json")
+                }
+            }
+        }
+
+        if (migrated) {
+            save()
+        }
+    }
+
+    private fun deserializeRoomData(element: com.google.gson.JsonElement): FMBlocksRoomData? {
+        return try {
             val data = FMBlocksRoomData()
 
             element.asJsonArray.forEach { blockElement ->
@@ -347,7 +456,9 @@ object FMBlocksManager {
                 if (positions.isNotEmpty()) data.blocks[state] = positions
             }
 
-            if (!data.isEmpty()) roomBlocks[roomName] = data
+            data
+        } catch (e: Exception) {
+            null
         }
     }
 
