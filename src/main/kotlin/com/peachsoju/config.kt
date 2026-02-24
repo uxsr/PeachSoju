@@ -61,7 +61,8 @@ object config {
         var autoAlignDelay: Int = 0,
         var espStartNodesDepthTest: Boolean = false,
         var legacyAnimationsExpanded: Boolean = true,
-        var hideServerID: Boolean = false
+        var hideServerID: Boolean = false,
+        var startNodeAppearance: NodeAppearance = NodeAppearance(NodeColor(255, 140, 80, 1.0f), "FILLED")
     )
 
     @Volatile private var data = Data()
@@ -223,6 +224,14 @@ object config {
         data.autoIceFill = !data.autoIceFill
         save()
         return data.autoIceFill
+    }
+
+    fun getStartNodeAppearance(): NodeAppearance = data.startNodeAppearance
+    fun setStartNodeColor(r: Int, g: Int, b: Int, a: Float) {
+        data.startNodeAppearance.color = NodeColor(r, g, b, a); save()
+    }
+    fun setStartNodeStyle(style: String) {
+        data.startNodeAppearance.style = style; save()
     }
 
     fun autoAlign() = data.autoAlign

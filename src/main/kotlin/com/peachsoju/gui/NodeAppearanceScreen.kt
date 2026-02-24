@@ -29,6 +29,7 @@ class NodeAppearanceScreen(private val parent: Screen?) : Screen(Component.liter
         private const val GUI_HEIGHT = 300
         private const val PADDING = 10
         private const val ROW_HEIGHT = 32
+        private const val START_ROW_HEIGHT = ROW_HEIGHT
         private const val HEADER_HEIGHT = 30
         private const val FOOTER_HEIGHT = 30
         private const val SCROLL_STEP = 14
@@ -68,6 +69,7 @@ class NodeAppearanceScreen(private val parent: Screen?) : Screen(Component.liter
 
     private var showStyleDropdown = false
     private var dropdownType: WPType? = null
+    private var dropdownIsStart = false
 
     override fun init() {
         super.init()
@@ -82,7 +84,7 @@ class NodeAppearanceScreen(private val parent: Screen?) : Screen(Component.liter
     }
 
     private fun recomputeMaxScroll() {
-        val contentHeight = WPType.entries.size * ROW_HEIGHT
+        val contentHeight = WPType.entries.size * ROW_HEIGHT + START_ROW_HEIGHT
         val viewHeight = GUI_HEIGHT - HEADER_HEIGHT - FOOTER_HEIGHT - (PADDING * 2)
         maxScroll = max(0, contentHeight - viewHeight)
         scrollY = scrollY.coerceIn(0, max(0, maxScroll))
@@ -126,7 +128,7 @@ class NodeAppearanceScreen(private val parent: Screen?) : Screen(Component.liter
         drawNodeTypeList(graphics, mouseX, mouseY, screenAlpha)
         drawFooter(graphics, screenAlpha)
 
-        if (showStyleDropdown && dropdownType != null && !isClosing) {
+        if (showStyleDropdown && !isClosing) {
             drawStyleDropdown(graphics, mouseX, mouseY)
         }
 
@@ -197,8 +199,10 @@ class NodeAppearanceScreen(private val parent: Screen?) : Screen(Component.liter
         val currentTime = System.currentTimeMillis()
         val elapsed = (currentTime - screenOpenTime).toFloat()
 
+        drawStartNodeRow(graphics, contentLeft, startY, GUI_WIDTH - PADDING * 2, mouseX, mouseY, alpha, contentTop, contentBottom)
+
         for ((i, type) in WPType.entries.withIndex()) {
-            val rowY = startY + (i * ROW_HEIGHT)
+            val rowY = startY + START_ROW_HEIGHT + (i * ROW_HEIGHT)
 
             if (rowY + ROW_HEIGHT < contentTop || rowY > contentBottom) continue
 
@@ -210,7 +214,7 @@ class NodeAppearanceScreen(private val parent: Screen?) : Screen(Component.liter
             val slideOffset = ((1f - easedEntry) * 30).toInt()
             val elementAlpha = alpha * easedEntry
 
-            drawNodeTypeRow(graphics, type, i, contentLeft + slideOffset, rowY, contentRight - contentLeft, mouseX, mouseY, elementAlpha, contentTop, contentBottom)
+            drawNodeTypeRow(graphics, type, i, contentLeft + slideOffset, rowY, GUI_WIDTH - PADDING * 2, mouseX, mouseY, elementAlpha, contentTop, contentBottom)
         }
 
         graphics.disableScissor()
@@ -227,6 +231,66 @@ class NodeAppearanceScreen(private val parent: Screen?) : Screen(Component.liter
             graphics.fill(scrollbarX, scrollbarTop, scrollbarX + 4, scrollbarBottom, withAlpha(PEACH_DARK, alpha * 0.3f))
             graphics.fill(scrollbarX + 1, thumbY, scrollbarX + 3, thumbY + thumbHeight, withAlpha(PEACH_MEDIUM, alpha))
         }
+    }
+
+    private fun drawStartNodeRow(
+        graphics: GuiGraphics,
+        x: Int, y: Int, width: Int,
+        mouseX: Int, mouseY: Int,
+        alpha: Float,
+        contentTop: Int, contentBottom: Int
+    ) {
+        val appearance = config.getStartNodeAppearance()
+
+        val hoverKey = "row_start"
+        val hover = mouseX in x..(x + width) && mouseY in y..(y + START_ROW_HEIGHT) &&
+                mouseY in contentTop..contentBottom && !isClosing && colorPicker == null
+        val newHover = lerp(hoverProgress.getOrDefault(hoverKey, 0f), if (hover) 1f else 0f, HOVER_LERP_SPEED)
+        hoverProgress[hoverKey] = newHover
+
+        val yOffset = (-newHover * 1).toInt()
+        val bgColor = lerpColor(PEACH_CREAM, PEACH_GLOW, newHover)
+        graphics.fill(x, y + yOffset, x + width, y + START_ROW_HEIGHT + yOffset - 2, withAlpha(bgColor, alpha))
+
+        graphics.fill(x + 4, y + START_ROW_HEIGHT - 2, x + width - 4, y + START_ROW_HEIGHT - 1, withAlpha(PEACH_MEDIUM, alpha * 0.6f))
+
+        graphics.drawString(font, "§6✦ Start", x + 5, y + 10 + yOffset, withAlpha(TEXT_DARK, alpha), false)
+
+        val colorX = x + 90
+        val colorY = y + 6 + yOffset
+        val colorSize = 18
+
+        val colorHoverKey = "color_start"
+        val colorHover = mouseX in colorX..(colorX + colorSize) && mouseY in colorY..(colorY + colorSize) &&
+                mouseY in contentTop..contentBottom && !isClosing && colorPicker == null
+        val newColorHover = lerp(hoverProgress.getOrDefault(colorHoverKey, 0f), if (colorHover) 1f else 0f, HOVER_LERP_SPEED)
+        hoverProgress[colorHoverKey] = newColorHover
+
+        val colorBorderColor = lerpColor(PEACH_DARK, brighten(PEACH_DARK, 30), newColorHover)
+        graphics.fill(colorX - 1, colorY - 1, colorX + colorSize + 1, colorY + colorSize + 1, withAlpha(colorBorderColor, alpha))
+        val c = appearance.color
+        val colorInt = (0xFF shl 24) or (c.r shl 16) or (c.g shl 8) or c.b
+        graphics.fill(colorX, colorY, colorX + colorSize, colorY + colorSize, withAlpha(colorInt, alpha))
+        if (newColorHover > 0.01f) {
+            graphics.fill(colorX, colorY, colorX + colorSize, colorY + colorSize, withAlpha(0x40FFFFFF, alpha * newColorHover))
+        }
+
+        val styleX = x + 125
+        val styleWidth = width - 135
+        val styleHeight = 18
+
+        val styleHoverKey = "style_start"
+        val styleHover = mouseX in styleX..(styleX + styleWidth) && mouseY in colorY..(colorY + styleHeight) &&
+                mouseY in contentTop..contentBottom && !isClosing && colorPicker == null
+        val newStyleHover = lerp(hoverProgress.getOrDefault(styleHoverKey, 0f), if (styleHover) 1f else 0f, HOVER_LERP_SPEED)
+        hoverProgress[styleHoverKey] = newStyleHover
+
+        val styleBg = lerpColor(PEACH_MEDIUM, brighten(PEACH_MEDIUM, 25), newStyleHover)
+        graphics.fill(styleX - 1, colorY - 1, styleX + styleWidth + 1, colorY + styleHeight + 1, withAlpha(PEACH_DARK, alpha))
+        graphics.fill(styleX, colorY, styleX + styleWidth, colorY + styleHeight, withAlpha(styleBg, alpha))
+        val styleText = RenderStyle.fromString(appearance.style).displayName
+        graphics.drawString(font, styleText, styleX + 5, colorY + 5, withAlpha(TEXT_LIGHT, alpha), false)
+        graphics.drawString(font, "▼", styleX + styleWidth - 12, colorY + 5, withAlpha(TEXT_LIGHT, alpha), false)
     }
 
     private fun drawNodeTypeRow(
@@ -300,18 +364,22 @@ class NodeAppearanceScreen(private val parent: Screen?) : Screen(Component.liter
     }
 
     private fun drawStyleDropdown(graphics: GuiGraphics, mouseX: Int, mouseY: Int) {
-        val type = dropdownType ?: return
-        val typeIndex = WPType.entries.indexOf(type)
-
         val contentTop = guiTop + HEADER_HEIGHT + PADDING
-        val rowY = contentTop + (typeIndex * ROW_HEIGHT) - animatedScrollY.toInt()
         val dropdownX = guiLeft + PADDING + 125
-        val dropdownY = rowY + 24
         val dropdownWidth = GUI_WIDTH - PADDING * 2 - 135
         val itemHeight = 20
 
-        graphics.fill(dropdownX + 2, dropdownY + 2, dropdownX + dropdownWidth + 2, dropdownY + (RenderStyle.entries.size * itemHeight) + 2, 0x40000000)
+        val rowY: Int = if (dropdownIsStart) {
+            contentTop - animatedScrollY.toInt()
+        } else {
+            val type = dropdownType ?: return
+            val typeIndex = WPType.entries.indexOf(type)
+            contentTop + START_ROW_HEIGHT + (typeIndex * ROW_HEIGHT) - animatedScrollY.toInt()
+        }
 
+        val dropdownY = rowY + 24
+
+        graphics.fill(dropdownX + 2, dropdownY + 2, dropdownX + dropdownWidth + 2, dropdownY + (RenderStyle.entries.size * itemHeight) + 2, 0x40000000)
         graphics.fill(dropdownX - 1, dropdownY - 1, dropdownX + dropdownWidth + 1, dropdownY + (RenderStyle.entries.size * itemHeight) + 1, PEACH_DARK)
 
         for ((i, style) in RenderStyle.entries.withIndex()) {
@@ -368,21 +436,34 @@ class NodeAppearanceScreen(private val parent: Screen?) : Screen(Component.liter
             return true
         }
 
-        if (showStyleDropdown && dropdownType != null) {
-            val typeIndex = WPType.entries.indexOf(dropdownType)
+        if (showStyleDropdown) {
             val contentTop = guiTop + HEADER_HEIGHT + PADDING
-            val rowY = contentTop + (typeIndex * ROW_HEIGHT) - animatedScrollY.toInt()
             val dropdownX = guiLeft + PADDING + 125
-            val dropdownY = rowY + 24
             val dropdownWidth = GUI_WIDTH - PADDING * 2 - 135
             val itemHeight = 20
+
+            val rowY: Int = if (dropdownIsStart) {
+                contentTop - animatedScrollY.toInt()
+            } else {
+                val type = dropdownType ?: run {
+                    showStyleDropdown = false; dropdownIsStart = false; return true
+                }
+                val typeIndex = WPType.entries.indexOf(type)
+                contentTop + START_ROW_HEIGHT + (typeIndex * ROW_HEIGHT) - animatedScrollY.toInt()
+            }
+            val dropdownY = rowY + 24
 
             for ((i, style) in RenderStyle.entries.withIndex()) {
                 val itemY = dropdownY + (i * itemHeight)
                 if (mouseX in dropdownX..(dropdownX + dropdownWidth) && mouseY in itemY..(itemY + itemHeight)) {
-                    NodeAppearanceSettings.setStyle(dropdownType!!, style)
+                    if (dropdownIsStart) {
+                        config.setStartNodeStyle(style.name)
+                    } else {
+                        NodeAppearanceSettings.setStyle(dropdownType!!, style)
+                    }
                     showStyleDropdown = false
                     dropdownType = null
+                    dropdownIsStart = false
                     playClick()
                     return true
                 }
@@ -390,6 +471,7 @@ class NodeAppearanceScreen(private val parent: Screen?) : Screen(Component.liter
 
             showStyleDropdown = false
             dropdownType = null
+            dropdownIsStart = false
             return true
         }
 
@@ -403,8 +485,18 @@ class NodeAppearanceScreen(private val parent: Screen?) : Screen(Component.liter
         }
 
         val startY = contentTop - animatedScrollY.toInt()
+
+        val startColorX = contentLeft + 90
+        val startColorY = startY + 6
+        val startColorSize = 18
+        if (mouseX in startColorX..(startColorX + startColorSize) && mouseY in startColorY..(startColorY + startColorSize)) {
+            openStartColorPicker()
+            playClick()
+            return true
+        }
+
         for ((i, type) in WPType.entries.withIndex()) {
-            val rowY = startY + (i * ROW_HEIGHT)
+            val rowY = startY + START_ROW_HEIGHT + (i * ROW_HEIGHT)
 
             if (rowY + ROW_HEIGHT < contentTop || rowY > contentBottom) continue
 
@@ -424,6 +516,7 @@ class NodeAppearanceScreen(private val parent: Screen?) : Screen(Component.liter
 
             if (mouseX in styleX..(styleX + styleWidth) && mouseY in colorY..(colorY + styleHeight)) {
                 dropdownType = type
+                dropdownIsStart = false
                 showStyleDropdown = true
                 playClick()
                 return true
@@ -431,6 +524,29 @@ class NodeAppearanceScreen(private val parent: Screen?) : Screen(Component.liter
         }
 
         return super.mouseClicked(event, consumed)
+    }
+
+    private fun openStartColorPicker() {
+        val appearance = config.getStartNodeAppearance()
+        showStyleDropdown = false
+        editingType = null
+
+        colorPicker = ColorPickerPopup(
+            appearance.color.r,
+            appearance.color.g,
+            appearance.color.b,
+            appearance.color.a,
+            onApply = { r, g, b, a ->
+                config.setStartNodeColor(r, g, b, a)
+                colorPicker = null
+            },
+            onCancel = {
+                colorPicker = null
+            }
+        ).apply {
+            x = guiLeft + GUI_WIDTH + 10
+            y = guiTop + 50
+        }
     }
 
     private fun openColorPicker(type: WPType) {
@@ -502,6 +618,7 @@ class NodeAppearanceScreen(private val parent: Screen?) : Screen(Component.liter
         if (showStyleDropdown) {
             showStyleDropdown = false
             dropdownType = null
+            dropdownIsStart = false
             return true
         }
         startClosing()

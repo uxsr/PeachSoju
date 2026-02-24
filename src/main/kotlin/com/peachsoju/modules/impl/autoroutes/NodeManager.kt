@@ -459,7 +459,9 @@ object  NodeManager {
         val box = aabb.inflate(0.01)
 
         if (node.start) {
-            event.drawFilledBox(box, Color(255, 140, 80, 1.0f), depth = espStartNodesDepthTest)
+            val sc = config.getStartNodeAppearance()
+            val c = sc.color
+            event.drawFilledBox(box, Color(c.r, c.g, c.b, c.a), depth = espStartNodesDepthTest)
             return
         }
 
@@ -468,6 +470,7 @@ object  NodeManager {
         when (style) {
             RenderStyle.PULSE_PYRAMID -> event.drawPulseInfillInvertedPyramid(box, color, outerDepth = !esp, sideDepth = !esp)
             RenderStyle.WIREFRAME -> event.drawWireFrameBox(box, color, depth = !esp)
+            RenderStyle.FILLED -> event.drawFilledBox(box, color, depth = espStartNodesDepthTest)
             RenderStyle.FILLED -> event.drawFilledBox(box, color, depth = !esp)
             RenderStyle.CORNER_BOX -> event.drawCornerBox(box, color, depth = !esp)
             RenderStyle.DASHED -> event.drawDashedWireBox(box, color, depth = !esp)

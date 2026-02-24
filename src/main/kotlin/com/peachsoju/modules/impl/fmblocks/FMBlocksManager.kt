@@ -34,7 +34,7 @@ object FMBlocksManager {
     val enabled: Boolean get() = config.fmBlocksEnabled()
     val editModeEnabled: Boolean get() = config.fmBlocksEditMode()
     private var reapplyTickCounter = 0
-    private const val reapplyInterval = 5
+    private const val reapplyInterval = 2
 
     private const val FMBLOCKS_FILE = "fmblocks.json"
     private const val BOSS_FMBLOCKS_FILE = "boss_fmblocks.json"
@@ -246,9 +246,19 @@ object FMBlocksManager {
         val room = getCurrentRoom()
         val roomKey = getCurrentRoomKey() ?: return
 
-        if (roomKey != lastRoomKey) {
+        val roomChanged = roomKey != lastRoomKey
+        if (roomChanged) {
             lastRoomKey = roomKey
             worldBlockCache.clear()
+        }
+
+        if (DungeonUtils.inBoss) {
+            reapplyTickCounter++
+            if (roomChanged || reapplyTickCounter >= reapplyInterval) {
+                reapplyTickCounter = 0
+                applyBlocksToWorld(roomKey, room)
+            }
+        } else if (roomChanged) {
             applyBlocksToWorld(roomKey, room)
         }
     }
@@ -318,17 +328,26 @@ object FMBlocksManager {
         val data = getBlocksForRoom(roomKey) ?: return
         val rotation = getRoomRotation(room)
 
+        var applied = 0
         for ((state, positions) in data.blocks) {
             val rotatedState = rotateBlockState(state, rotation)
             for (relativePos in positions) {
                 val worldPos = relativeToWorld(relativePos, room)
+
+                if (!level.isLoaded(worldPos)) continue
+                if (level.getBlockState(worldPos) == rotatedState) {
+                    worldBlockCache[worldPos] = rotatedState
+                    continue
+                }
+
                 level.setBlockAndUpdate(worldPos, rotatedState)
                 worldBlockCache[worldPos] = rotatedState
+                applied++
             }
         }
 
-        if (worldBlockCache.isNotEmpty()) {
-            RouteUtils.debug("§a[FMBlocks] Applied ${worldBlockCache.size} blocks to $roomKey")
+        if (applied > 0) {
+            RouteUtils.debug("§a[FMBlocks] Applied $applied blocks to $roomKey")
         }
     }
 
