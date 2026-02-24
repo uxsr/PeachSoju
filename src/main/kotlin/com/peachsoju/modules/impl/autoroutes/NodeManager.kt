@@ -423,12 +423,13 @@ object  NodeManager {
 
                 for (node in list) {
                     if (renderOnlyStartNodes && !node.start) continue
+                    if (node.start && DungeonUtils.inBoss) continue
                     renderNode(event, node, room)
                 }
             }
         }
 
-        if (DungeonUtils.inDungeons) {
+        if (DungeonUtils.inDungeons && !DungeonUtils.inBoss) {
             for ((roomName, scannedRoom) in scannedRooms) {
                 if (roomName == currentKey) continue
 
