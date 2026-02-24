@@ -42,13 +42,7 @@ object FMBlocksHighlights {
     private var loaded = false
 
     private val defaultHighlights = listOf(
-        BlockHighlight("minecraft:beacon", true, HighlightColor(85, 255, 255, 0.6f)),
-        BlockHighlight("minecraft:chest", true, HighlightColor(255, 215, 0, 0.4f)),
-        BlockHighlight("minecraft:trapped_chest", true, HighlightColor(255, 100, 100, 0.5f)),
-        BlockHighlight("minecraft:lever", true, HighlightColor(255, 85, 85, 0.5f)),
-        BlockHighlight("minecraft:stone_button", true, HighlightColor(170, 170, 170, 0.4f)),
-        BlockHighlight("minecraft:skull", true, HighlightColor(255, 255, 255, 0.5f)),
-        BlockHighlight("minecraft:wither_skeleton_skull", true, HighlightColor(50, 50, 50, 0.6f))
+        BlockHighlight("minecraft:beacon", true, HighlightColor(85, 255, 255, 0.6f))
     )
 
     fun reloadFromDisk() {

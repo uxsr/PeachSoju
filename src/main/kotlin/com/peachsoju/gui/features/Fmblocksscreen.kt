@@ -12,7 +12,6 @@ class FMBlocksScreen(parent: Screen?) : FeatureScreen(parent, "FM Blocks") {
     override fun init() {
         super.init()
         FMBlocksEditMode.initialize()
-        FMBlocksHighlights.load()
         updateFilteredBlocks()
     }
 

@@ -91,7 +91,6 @@ class FMBlocksHighlightsScreen(parent: Screen?) : Screen(Component.literal("Bloc
             screenOpenTime = System.currentTimeMillis()
         }
 
-        FMBlocksHighlights.load()
         recomputeMaxScroll()
         updateFilteredItems()
     }
