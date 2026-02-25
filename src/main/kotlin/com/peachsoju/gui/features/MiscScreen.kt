@@ -11,6 +11,12 @@ class MiscScreen(parent: Screen?) : FeatureScreen(parent, "Misc") {
             { config.hideServerID() },
             { config.toggleHideServerID() },
             "Hides server ID in scoreboard"
+        ),
+        GuiElement.Toggle(
+            "Chat Bypass",
+            { config.chatBypass() },
+            { config.toggleChatBypass() },
+            "Bypasses chat filters"
         )
     )
 }

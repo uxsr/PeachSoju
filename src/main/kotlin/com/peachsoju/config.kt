@@ -62,7 +62,9 @@ object config {
         var espStartNodesDepthTest: Boolean = false,
         var legacyAnimationsExpanded: Boolean = true,
         var hideServerID: Boolean = false,
-        var startNodeAppearance: NodeAppearance = NodeAppearance(NodeColor(255, 140, 80, 1.0f), "FILLED")
+        var startNodeAppearance: NodeAppearance = NodeAppearance(NodeColor(255, 140, 80, 1.0f), "FILLED"),
+        var chatBypass: Boolean = false,
+        var chatBypassMode: String = "FONT"
     )
 
     @Volatile private var data = Data()
@@ -144,6 +146,14 @@ object config {
     fun toggleShowLines() = (!data.showLines).also { data.showLines = it; save() }
     fun getNodeAppearance(type: WPType): NodeAppearance {
         return data.nodeAppearances[type.name] ?: defaultAppearances[type] ?: NodeAppearance()
+    }
+    fun chatBypass(): Boolean = data.chatBypass
+    fun toggleChatBypass() = (!data.chatBypass).also { data.chatBypass = it; save() }
+    fun chatBypassMode(): String = data.chatBypassMode
+    fun setChatBypassMode(mode: String) { data.chatBypassMode = mode; save() }
+    fun cycleChatBypassMode() {
+        data.chatBypassMode = if (data.chatBypassMode == "FONT") "DOTS" else "FONT"
+        save()
     }
     fun legacyAnimationsExpanded() = data.legacyAnimationsExpanded
     fun setLegacyAnimationsExpanded(v: Boolean) { data.legacyAnimationsExpanded = v; save() }

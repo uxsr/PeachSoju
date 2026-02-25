@@ -18,6 +18,7 @@ import com.peachsoju.modules.impl.autoroutes.DungeonBreakerListener
 import com.peachsoju.modules.impl.autoroutes.SecretListener
 import com.peachsoju.modules.impl.autoroutes.NodeManager
 import com.peachsoju.modules.impl.autoss.AutoSS
+import com.peachsoju.modules.impl.chatbypass.ChatBypass
 //import com.peachsoju.modules.impl.autoss.AutoSSCommand
 import com.peachsoju.modules.impl.fmblocks.FMBlocksCommands
 import com.peachsoju.modules.impl.fmblocks.FMBlocksEditMode
@@ -62,6 +63,7 @@ object PeachSoju : ModInitializer {
 		eventBus.register(WalkHandler)
 		eventBus.register(FMBlocksHighlightRenderer)
 		eventBus.register(FMBlocksHighlights)
+		eventBus.register(ChatBypass)
 //		eventBus.register(AutoClose)
 //		eventBus.register(SecretAura)
 	}
