@@ -85,7 +85,7 @@ object FMBlocksHighlightRenderer {
         if (highlightCache.isEmpty()) return
 
         val playerPos = player.blockPosition()
-        val scanRadius = 128
+        val scanRadius = 64
 
         for (x in -scanRadius..scanRadius) {
             for (y in -scanRadius / 2..scanRadius / 2) {
