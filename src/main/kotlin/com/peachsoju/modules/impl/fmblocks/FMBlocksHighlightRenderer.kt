@@ -71,6 +71,7 @@ object FMBlocksHighlightRenderer {
     @SubscribeEvent
     fun onRenderWorld(event: RenderEvent.Extract) {
         if (!config.fmBlocksEnabled()) return
+        if (!DungeonUtils.inDungeons) return
 
         val player = mc.player ?: return
         val level = mc.level ?: return
@@ -84,7 +85,7 @@ object FMBlocksHighlightRenderer {
         if (highlightCache.isEmpty()) return
 
         val playerPos = player.blockPosition()
-        val scanRadius = 32
+        val scanRadius = 128
 
         for (x in -scanRadius..scanRadius) {
             for (y in -scanRadius / 2..scanRadius / 2) {
