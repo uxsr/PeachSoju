@@ -106,7 +106,7 @@ object Autoroutes {
                 when {
                     BatListener.isAwaitingBat() -> BatListener.manualTrigger()
                     DungeonBreakerListener.isAwaitingDb() -> DungeonBreakerListener.manualTrigger()
-                    else -> SecretListener.manualTrigger()
+                    else -> manualSkipAllSecrets()
                 }
             }
             leftClickWasDown = leftClickDown
@@ -203,6 +203,28 @@ object Autoroutes {
         val currentPos = player.position()
         checkIntersection(RouteState.previousPosition, currentPos, room)
         RouteState.previousPosition = currentPos
+    }
+
+    /**
+     * Manual skip - clears ALL remaining secrets at once and executes the pending node
+     */
+    private fun manualSkipAllSecrets() {
+        if (RouteState.awaitingSecrets <= 0) return
+
+        val skipped = RouteState.awaitingSecrets
+        RouteState.awaitingSecrets = 0
+        RouteUtils.debug("§e[Manual] Skipped $skipped remaining secret(s)")
+
+        val idx = RouteState.pendingNodeIndex
+        val node = RouteState.nodeList.getOrNull(idx)
+        val room = RouteState.currentRoom
+
+        if (node != null) {
+            RouteUtils.debug("§a§l[Manual] Executing node #$idx")
+            RouteState.lock()
+            doNodeAction(node, idx, room)
+        }
+        RouteState.pendingNodeIndex = -1
     }
 
     @SubscribeEvent

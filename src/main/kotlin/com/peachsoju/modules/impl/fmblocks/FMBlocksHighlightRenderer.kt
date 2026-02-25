@@ -14,7 +14,6 @@ import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockPos
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.world.InteractionHand
-import net.minecraft.world.item.BlockItem
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.phys.AABB
 
@@ -106,7 +105,7 @@ object FMBlocksHighlightRenderer {
                         highlightColor.a
                     )
 
-                    event.drawFilledBox(aabb, color, depth = false)
+                    event.drawFilledBox(aabb, color, depth = true)
                 }
             }
         }
