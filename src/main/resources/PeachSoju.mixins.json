@@ -3,20 +3,19 @@
 	"package": "com.peachsoju.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
-		"ExampleMixin",
-		"IMinecraftAccessor",
-		"IMultiPlayerGameModeAccessor",
-		"MixinClientPacketListener",
-		"MixinPlayerPosition",
-		"MixinConnection",
 		"ClientLevelMixin",
 		"ClientPacketListenerMixin",
+		"ExampleMixin",
+		"IMinecraftAccessor",
 		"IMixinClientLevel",
-		"MixinLocalPlayer",
+		"IMultiPlayerGameModeAccessor",
+		"MixinClientPacketListener",
+		"MixinConnection",
 		"MixinItemInHandRenderer",
+		"MixinLocalPlayer",
+		"MixinMinecraft",
+		"MixinPlayerPosition",
 		"ServerIDSpooferMixin"
-
-
 	],
 	"injectors": {
 		"defaultRequire": 1

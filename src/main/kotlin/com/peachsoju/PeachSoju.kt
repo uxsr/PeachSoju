@@ -31,12 +31,12 @@ import net.fabricmc.api.ModInitializer
 import net.minecraft.client.Minecraft
 import org.slf4j.LoggerFactory
 
-object PeachSoju : ModInitializer {
+object PeachSoju {
 	private val logger = LoggerFactory.getLogger("PeachSoju")
 	val mc: Minecraft get() = Minecraft.getInstance()
 	val eventBus = EventBus()
 
-	override fun onInitialize() {
+	fun init() {
 		config.load()
 		AutoRoutesCommand.register()
 		PeachSojuCommand.register()
