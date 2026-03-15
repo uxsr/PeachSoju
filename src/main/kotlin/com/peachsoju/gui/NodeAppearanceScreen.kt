@@ -1,10 +1,10 @@
 package com.peachsoju.gui
 
 import com.peachsoju.config
-import com.peachsoju.gui.components.ColorPickerPopup
-import com.peachsoju.modules.impl.autoroutes.NodeAppearanceSettings
-import com.peachsoju.modules.impl.autoroutes.RenderStyle
-import com.peachsoju.modules.impl.autoroutes.data.WPType
+import com.peachsoju.modules.impl.misc.customitems.ColorPickerPopup
+import com.peachsoju.modules.impl.dungeon.autoroutes.NodeAppearanceSettings
+import com.peachsoju.modules.impl.dungeon.autoroutes.RenderStyle
+import com.peachsoju.modules.impl.dungeon.autoroutes.data.WPType
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.client.gui.screens.Screen
@@ -65,10 +65,10 @@ class NodeAppearanceScreen(private val parent: Screen?) : Screen(Component.liter
     private var backButtonHover = 0f
 
     private var colorPicker: ColorPickerPopup? = null
-    private var editingType: WPType? = null
+    private var editingType: com.peachsoju.modules.impl.dungeon.autoroutes.data.WPType? = null
 
     private var showStyleDropdown = false
-    private var dropdownType: WPType? = null
+    private var dropdownType: com.peachsoju.modules.impl.dungeon.autoroutes.data.WPType? = null
     private var dropdownIsStart = false
 
     override fun init() {
@@ -84,7 +84,7 @@ class NodeAppearanceScreen(private val parent: Screen?) : Screen(Component.liter
     }
 
     private fun recomputeMaxScroll() {
-        val contentHeight = WPType.entries.size * ROW_HEIGHT + START_ROW_HEIGHT
+        val contentHeight = _root_ide_package_.com.peachsoju.modules.impl.dungeon.autoroutes.data.WPType.entries.size * ROW_HEIGHT + START_ROW_HEIGHT
         val viewHeight = GUI_HEIGHT - HEADER_HEIGHT - FOOTER_HEIGHT - (PADDING * 2)
         maxScroll = max(0, contentHeight - viewHeight)
         scrollY = scrollY.coerceIn(0, max(0, maxScroll))

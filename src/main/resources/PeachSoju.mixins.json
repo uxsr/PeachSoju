@@ -15,7 +15,17 @@
 		"MixinLocalPlayer",
 		"MixinMinecraft",
 		"MixinPlayerPosition",
-		"ServerIDSpooferMixin"
+		"ServerIDSpooferMixin",
+		"ItemModelResolverMixin",
+		"ItemInHandRendererMixin",
+		"GuiGraphicsMixin",
+		"ItemStackCustomizeMixin",
+		"HumanoidArmorLayerMixin",
+		"NickHiderStringMixin",
+		"ArmorTrimMixin",
+		"DataComponentHolderMixin",
+		"ScoreboardRenderMixin",
+		"ChatScreenAccessor"
 	],
 	"injectors": {
 		"defaultRequire": 1

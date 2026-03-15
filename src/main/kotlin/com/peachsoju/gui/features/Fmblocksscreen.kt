@@ -2,8 +2,7 @@ package com.peachsoju.gui.features
 
 import com.peachsoju.config
 import com.peachsoju.gui.FeatureScreen
-import com.peachsoju.modules.impl.fmblocks.FMBlocksEditMode
-import com.peachsoju.modules.impl.fmblocks.FMBlocksHighlights
+import com.peachsoju.modules.impl.dungeon.fmblocks.FMBlocksEditMode
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.screens.Screen
 

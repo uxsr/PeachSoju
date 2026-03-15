@@ -1,6 +1,6 @@
 package com.peachsoju.gui
 
-import com.peachsoju.modules.impl.fmblocks.FMBlocksEditMode
+import com.peachsoju.modules.impl.dungeon.fmblocks.FMBlocksEditMode
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.client.gui.screens.Screen
@@ -78,6 +78,9 @@ abstract class FeatureScreen(
     protected var activeTextField: GuiElement.TextField? = null
     protected val textFieldValues = mutableMapOf<String, String>()
 
+    protected var activeStringField: GuiElement.StringField? = null
+    protected val stringFieldValues = mutableMapOf<String, String>()
+
     protected var blockSearchText = ""
     protected var blockSearchActive = false
     protected var filteredBlocks: List<Block> = emptyList()
@@ -123,6 +126,15 @@ abstract class FeatureScreen(
             val indent: Int = 0
         ) : GuiElement()
 
+        data class StringField(
+            val id: String,
+            val name: String,
+            val getter: () -> String,
+            val setter: (String) -> Unit,
+            val maxLength: Int = 16,
+            val description: String = ""
+        ) : GuiElement()
+
         data class Label(
             val text: String,
             val color: Int = TEXT_DARK
@@ -157,6 +169,7 @@ abstract class FeatureScreen(
                 is GuiElement.Button -> ROW_HEIGHT
                 is GuiElement.Slider -> ROW_HEIGHT
                 is GuiElement.TextField -> ROW_HEIGHT
+                is GuiElement.StringField -> ROW_HEIGHT
                 is GuiElement.Label -> ROW_HEIGHT
                 is GuiElement.BlockPicker -> ROW_HEIGHT + 24
                 is GuiElement.Spacer -> 10
@@ -359,6 +372,12 @@ abstract class FeatureScreen(
                     }
                     y += ROW_HEIGHT
                 }
+                is GuiElement.StringField -> {
+                    if (y + ROW_HEIGHT >= contentTop && y < contentBottom) {
+                        drawStringField(graphics, element, contentLeft + slideOffset, y, contentRight - contentLeft, mouseX, mouseY, elementAlpha)
+                    }
+                    y += ROW_HEIGHT
+                }
                 is GuiElement.Label -> {
                     if (y + ROW_HEIGHT >= contentTop && y < contentBottom) {
                         graphics.drawString(font, element.text, contentLeft + 5 + slideOffset, y + 6, withAlpha(element.color, elementAlpha), false)
@@ -556,6 +575,53 @@ abstract class FeatureScreen(
         }
     }
 
+    private fun drawStringField(
+        graphics: GuiGraphics,
+        field: GuiElement.StringField,
+        x: Int, y: Int, width: Int,
+        mouseX: Int, mouseY: Int,
+        alpha: Float
+    ) {
+        val isActive = activeStringField == field
+
+        graphics.drawString(font, field.name, x + 5, y + 6, withAlpha(TEXT_DARK, alpha), false)
+
+        val fieldX = x + width - 120
+        val fieldY = y + 3
+        val fieldW = 115
+        val fieldH = 16
+
+        val hover = mouseX >= fieldX && mouseX <= fieldX + fieldW &&
+                mouseY >= fieldY && mouseY <= fieldY + fieldH && !isClosing
+
+        val hoverKey = "stringfield_${field.id}"
+        val targetHover = if (hover || isActive) 1f else 0f
+        val currentHover = hoverProgress.getOrDefault(hoverKey, 0f)
+        val newHover = lerp(currentHover, targetHover, HOVER_LERP_SPEED)
+        hoverProgress[hoverKey] = newHover
+
+        val borderColor = lerpColor(PEACH_DARK, PEACH_MEDIUM, newHover)
+        val bgColor = lerpColor(0xFFE8E8E8.toInt(), 0xFFFFFFFF.toInt(), newHover)
+
+        graphics.fill(fieldX - 1, fieldY - 1, fieldX + fieldW + 1, fieldY + fieldH + 1, withAlpha(borderColor, alpha))
+        graphics.fill(fieldX, fieldY, fieldX + fieldW, fieldY + fieldH, withAlpha(bgColor, alpha))
+
+        val currentText = stringFieldValues[field.id] ?: field.getter()
+
+        val cursorVisible = isActive && ((System.currentTimeMillis() / 500) % 2 == 0L)
+        val displayText = if (cursorVisible) "$currentText|" else currentText
+
+        val truncated = if (font.width(displayText) > fieldW - 8) {
+            "..." + displayText.takeLast(12)
+        } else displayText
+
+        graphics.drawString(font, truncated, fieldX + 4, fieldY + 4, withAlpha(TEXT_DARK, alpha), false)
+
+        if (hover && field.description.isNotEmpty()) {
+            tooltipToDraw = Triple(mouseX, mouseY, field.description)
+        }
+    }
+
     private fun drawBlockPicker(
         graphics: GuiGraphics,
         x: Int, y: Int, width: Int,
@@ -611,6 +677,7 @@ abstract class FeatureScreen(
                 is GuiElement.Button -> ROW_HEIGHT
                 is GuiElement.Slider -> ROW_HEIGHT
                 is GuiElement.TextField -> ROW_HEIGHT
+                is GuiElement.StringField -> ROW_HEIGHT
                 is GuiElement.Label -> ROW_HEIGHT
                 is GuiElement.BlockPicker -> ROW_HEIGHT + 24
                 is GuiElement.Spacer -> 10
@@ -771,6 +838,9 @@ abstract class FeatureScreen(
             if (activeTextField != null) {
                 commitTextField()
             }
+            if (activeStringField != null) {
+                commitStringField()
+            }
             return super.mouseClicked(event, bl)
         }
 
@@ -783,6 +853,7 @@ abstract class FeatureScreen(
                 is GuiElement.Button -> ROW_HEIGHT
                 is GuiElement.Slider -> ROW_HEIGHT
                 is GuiElement.TextField -> ROW_HEIGHT
+                is GuiElement.StringField -> ROW_HEIGHT
                 is GuiElement.Label -> ROW_HEIGHT
                 is GuiElement.BlockPicker -> ROW_HEIGHT + 24
                 is GuiElement.Spacer -> 10
@@ -795,6 +866,7 @@ abstract class FeatureScreen(
                         val toggleY = y + 3
                         if (mouseX >= toggleX && mouseX <= toggleX + TOGGLE_WIDTH && mouseY >= toggleY && mouseY <= toggleY + TOGGLE_HEIGHT) {
                             commitTextField()
+                            commitStringField()
                             element.toggler()
                             playClickSound()
                             return true
@@ -807,6 +879,7 @@ abstract class FeatureScreen(
                         val buttonH = ROW_HEIGHT - 4
                         if (mouseX >= buttonX && mouseX <= buttonX + buttonW && mouseY >= buttonY && mouseY <= buttonY + buttonH) {
                             commitTextField()
+                            commitStringField()
                             element.action()
                             playClickSound()
                             return true
@@ -819,6 +892,7 @@ abstract class FeatureScreen(
                         val sliderH = 8
                         if (mouseX >= sliderX && mouseX <= sliderX + sliderW && mouseY >= sliderY - 2 && mouseY <= sliderY + sliderH + 2) {
                             commitTextField()
+                            commitStringField()
                             draggingSlider = element
                             val progress = ((mouseX - sliderX).toDouble() / sliderW).coerceIn(0.0, 1.0)
                             val newValue = element.min + (progress * (element.max - element.min))
@@ -835,6 +909,7 @@ abstract class FeatureScreen(
                             if (activeTextField != null && activeTextField != element) {
                                 commitTextField()
                             }
+                            commitStringField()
                             activeTextField = element
                             if (!textFieldValues.containsKey(element.id)) {
                                 textFieldValues[element.id] = String.format("%.2f", element.getter())
@@ -845,6 +920,26 @@ abstract class FeatureScreen(
                             commitTextField()
                         }
                     }
+                    is GuiElement.StringField -> {
+                        val fieldX = contentLeft + (contentRight - contentLeft) - 120
+                        val fieldY = y + 3
+                        val fieldW = 115
+                        val fieldH = 16
+                        if (mouseX >= fieldX && mouseX <= fieldX + fieldW && mouseY >= fieldY && mouseY <= fieldY + fieldH) {
+                            commitTextField()
+                            if (activeStringField != null && activeStringField != element) {
+                                commitStringField()
+                            }
+                            activeStringField = element
+                            if (!stringFieldValues.containsKey(element.id)) {
+                                stringFieldValues[element.id] = element.getter()
+                            }
+                            playClickSound()
+                            return true
+                        } else if (activeStringField == element) {
+                            commitStringField()
+                        }
+                    }
                     is GuiElement.BlockPicker -> {
                         val searchX = contentLeft + 5
                         val searchY = y + ROW_HEIGHT
@@ -852,6 +947,7 @@ abstract class FeatureScreen(
                         val searchH = 18
                         if (mouseX >= searchX && mouseX <= searchX + searchW && mouseY >= searchY && mouseY <= searchY + searchH) {
                             commitTextField()
+                            commitStringField()
                             blockSearchActive = true
                             blockDropdownOpen = true
                             playClickSound()
@@ -867,6 +963,9 @@ abstract class FeatureScreen(
 
         if (activeTextField != null) {
             commitTextField()
+        }
+        if (activeStringField != null) {
+            commitStringField()
         }
         blockSearchActive = false
         return super.mouseClicked(event, bl)
@@ -884,6 +983,7 @@ abstract class FeatureScreen(
                 is GuiElement.Button -> ROW_HEIGHT
                 is GuiElement.Slider -> ROW_HEIGHT
                 is GuiElement.TextField -> ROW_HEIGHT
+                is GuiElement.StringField -> ROW_HEIGHT
                 is GuiElement.Label -> ROW_HEIGHT
                 is GuiElement.BlockPicker -> ROW_HEIGHT + 24
                 is GuiElement.Spacer -> 10
@@ -929,6 +1029,13 @@ abstract class FeatureScreen(
         }
 
         activeTextField = null
+    }
+
+    protected fun commitStringField() {
+        val field = activeStringField ?: return
+        val text = stringFieldValues[field.id] ?: return
+        field.setter(text)
+        activeStringField = null
     }
 
     override fun mouseReleased(event: MouseButtonEvent): Boolean {
@@ -977,6 +1084,10 @@ abstract class FeatureScreen(
                 commitTextField()
                 return true
             }
+            if (activeStringField != null) {
+                commitStringField()
+                return true
+            }
             if (blockDropdownOpen) {
                 blockDropdownOpen = false
                 blockSearchActive = false
@@ -1004,6 +1115,30 @@ abstract class FeatureScreen(
                 }
                 keyCode == 258 -> {
                     commitTextField()
+                    return true
+                }
+            }
+            return true
+        }
+
+        if (activeStringField != null) {
+            val field = activeStringField!!
+            val keyCode = event.key()
+
+            when {
+                keyCode == 259 -> {
+                    val current = stringFieldValues[field.id] ?: ""
+                    if (current.isNotEmpty()) {
+                        stringFieldValues[field.id] = current.dropLast(1)
+                    }
+                    return true
+                }
+                keyCode == 257 || keyCode == 335 -> {
+                    commitStringField()
+                    return true
+                }
+                keyCode == 258 -> {
+                    commitStringField()
                     return true
                 }
             }
@@ -1059,6 +1194,23 @@ abstract class FeatureScreen(
 
                 if (newText.length <= 8) {
                     textFieldValues[field.id] = newText
+                }
+                return true
+            }
+            return true
+        }
+
+        if (activeStringField != null) {
+            val field = activeStringField!!
+            val codepoint = event.codepoint()
+            val char = codepoint.toChar()
+
+            if (char.code >= 32) {
+                val current = stringFieldValues[field.id] ?: ""
+                if (current.length < field.maxLength) {
+                    val newValue = current + char
+                    stringFieldValues[field.id] = newValue
+                    field.setter(newValue)
                 }
                 return true
             }

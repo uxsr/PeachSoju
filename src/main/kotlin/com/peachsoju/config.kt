@@ -1,8 +1,8 @@
 package com.peachsoju
 
-import com.peachsoju.modules.impl.autoroutes.data.WPType
 import com.google.gson.GsonBuilder
-import com.peachsoju.modules.impl.autoicefill.AutoIceFill
+import com.peachsoju.modules.impl.dungeon.autoroutes.data.WPType
+import com.peachsoju.sync.PeachSojuSync
 import net.fabricmc.loader.api.FabricLoader
 import java.nio.file.Files
 import java.nio.file.Path
@@ -64,21 +64,54 @@ object config {
         var hideServerID: Boolean = false,
         var startNodeAppearance: NodeAppearance = NodeAppearance(NodeColor(255, 140, 80, 1.0f), "FILLED"),
         var chatBypass: Boolean = false,
-        var chatBypassMode: String = "FONT"
+        var chatBypassMode: String = "FONT",
+        var autoWeirdos: Boolean = false,
+        var autoWeirdosExpanded: Boolean = true,
+        var nickHider: Boolean = false,
+        var nickHiderNickRaw: String = "PeachSoju",
+        var nickHiderColor: String = "§d",
+        var nickHiderBold: Boolean = false,
+        var nickHiderItalic: Boolean = false,
+        var nickHiderUnderline: Boolean = false,
+        var nickHiderStrikethrough: Boolean = false,
+        var nickHiderExpanded: Boolean = true,
+        var nickHiderRankEnabled: Boolean = false,
+        var nickHiderRankOrdinal: Int = 0,
+        var nickHiderPlusColor: String = "§c",
+        var nickHiderMvpPlusPlusBracketColor: String = "§6",
+        var nickHiderUseCustomNick: Boolean = false,
+        var autoIceFillTickDelay: Int = 1,
+        var autoP5Enabled: Boolean = false,
+        var autoP5Pathfind: Boolean = true,
+        var autoP5LastBreath: Boolean = true,
+        var autoP5IceSpray: Boolean = false,
+        var autoP5SoulWhip: Boolean = false,
+        var autoP5GoMiddle: Boolean = true,
+        var autoP5Debug: Boolean = false,
+        var autoP5HealerTeam: Int = 0,  // 0 = Solo, 1 = With Archer
+        var autoP5IceSprayTick: Int = 82,
+        var autoP5SoulWhipTick: Int = 8,
+        var autoP5RedDelay: Double = 750.0,
+        var autoP5OrangeDelay: Double = 750.0,
+        var autoP5GreenDelay: Double = 750.0,
+        var autoP5BlueDelay: Double = 750.0,
+        var autoP5PurpleDelay: Double = 750.0,
+        var autoP5Expanded: Boolean = true
     )
 
     @Volatile private var data = Data()
 
     private val defaultAppearances = mapOf(
-        WPType.ETHER to NodeAppearance(NodeColor(85, 255, 255, 0.60f), "PULSE_PYRAMID"),
-        WPType.AOTV to NodeAppearance(NodeColor(255, 179, 142, 0.60f), "PULSE_PYRAMID"),
-        WPType.HYPE to NodeAppearance(NodeColor(170, 85, 255, 0.60f), "PULSE_PYRAMID"),
-        WPType.SUPERBOOM to NodeAppearance(NodeColor(255, 85, 85, 0.60f), "PULSE_PYRAMID"),
-        WPType.USEITEM to NodeAppearance(NodeColor(85, 255, 85, 0.60f), "PULSE_PYRAMID"),
-        WPType.LOOK to NodeAppearance(NodeColor(255, 255, 85, 0.60f), "PULSE_PYRAMID"),
-        WPType.NOP to NodeAppearance(NodeColor(170, 170, 170, 0.60f), "PULSE_PYRAMID"),
-        WPType.WALK to NodeAppearance(NodeColor(34, 139, 34, 0.8f), "PULSE_PYRAMID"),
-        WPType.STOP to NodeAppearance(NodeColor(139, 0, 0, 0.8f), "PULSE_PYRAMID")
+        _root_ide_package_.com.peachsoju.modules.impl.dungeon.autoroutes.data.WPType.ETHER to NodeAppearance(NodeColor(85, 255, 255, 0.60f), "PULSE_PYRAMID"),
+        _root_ide_package_.com.peachsoju.modules.impl.dungeon.autoroutes.data.WPType.AOTV to NodeAppearance(NodeColor(255, 179, 142, 0.60f), "PULSE_PYRAMID"),
+        _root_ide_package_.com.peachsoju.modules.impl.dungeon.autoroutes.data.WPType.HYPE to NodeAppearance(NodeColor(170, 85, 255, 0.60f), "PULSE_PYRAMID"),
+        _root_ide_package_.com.peachsoju.modules.impl.dungeon.autoroutes.data.WPType.SUPERBOOM to NodeAppearance(NodeColor(255, 85, 85, 0.60f), "PULSE_PYRAMID"),
+        _root_ide_package_.com.peachsoju.modules.impl.dungeon.autoroutes.data.WPType.USEITEM to NodeAppearance(NodeColor(85, 255, 85, 0.60f), "PULSE_PYRAMID"),
+        _root_ide_package_.com.peachsoju.modules.impl.dungeon.autoroutes.data.WPType.LOOK to NodeAppearance(NodeColor(255, 255, 85, 0.60f), "PULSE_PYRAMID"),
+        _root_ide_package_.com.peachsoju.modules.impl.dungeon.autoroutes.data.WPType.NOP to NodeAppearance(NodeColor(170, 170, 170, 0.60f), "PULSE_PYRAMID"),
+        _root_ide_package_.com.peachsoju.modules.impl.dungeon.autoroutes.data.WPType.WALK to NodeAppearance(NodeColor(34, 139, 34, 0.8f), "PULSE_PYRAMID"),
+        _root_ide_package_.com.peachsoju.modules.impl.dungeon.autoroutes.data.WPType.STOP to NodeAppearance(NodeColor(139, 0, 0, 0.8f), "PULSE_PYRAMID"),
+        WPType.ALIGN to NodeAppearance(NodeColor(255, 215, 0, 0.8f), "DIAMOND")
     )
 
     fun load(): Data {
@@ -144,7 +177,7 @@ object config {
     fun showLines() = data.showLines
     fun setShowLines(v: Boolean) { data.showLines = v; save() }
     fun toggleShowLines() = (!data.showLines).also { data.showLines = it; save() }
-    fun getNodeAppearance(type: WPType): NodeAppearance {
+    fun getNodeAppearance(type: com.peachsoju.modules.impl.dungeon.autoroutes.data.WPType): NodeAppearance {
         return data.nodeAppearances[type.name] ?: defaultAppearances[type] ?: NodeAppearance()
     }
     fun chatBypass(): Boolean = data.chatBypass
@@ -211,6 +244,9 @@ object config {
     fun autoIceFillExpanded() = data.autoIceFillExpanded
     fun setAutoIceFillExpanded(v: Boolean) { data.autoIceFillExpanded = v; save() }
 
+    fun iceFillTickDelay() = data.autoIceFillTickDelay
+    fun setIceFillTickDelay(v: Int) { data.autoIceFillTickDelay = v.coerceIn(1, 10); save() }
+
     fun stormBowTimer() = data.stormBowTimer
     fun setStormBowTimer(v: Boolean) { data.stormBowTimer = v; save() }
     fun toggleStormBowTimer() = (!data.stormBowTimer).also { data.stormBowTimer = it; save() }
@@ -236,6 +272,61 @@ object config {
         return data.autoIceFill
     }
 
+    fun nickHider() = data.nickHider
+    fun setNickHider(v: Boolean) { data.nickHider = v; save(); PeachSojuSync.markDirty() }
+    fun toggleNickHider() = (!data.nickHider).also { data.nickHider = it; save(); PeachSojuSync.markDirty() }
+
+    fun nickHiderNickRaw(): String = data.nickHiderNickRaw
+    fun setNickHiderNickRaw(nick: String) {
+        data.nickHiderNickRaw = nick
+        save()
+        PeachSojuSync.markDirty()
+    }
+
+    fun nickHiderColor(): String = data.nickHiderColor
+    fun setNickHiderColor(color: String) {
+        data.nickHiderColor = color
+        save()
+        PeachSojuSync.markDirty()
+    }
+
+    fun nickHiderBold() = data.nickHiderBold
+    fun setNickHiderBold(v: Boolean) { data.nickHiderBold = v; save(); PeachSojuSync.markDirty() }
+    fun toggleNickHiderBold() = (!data.nickHiderBold).also { data.nickHiderBold = it; save(); PeachSojuSync.markDirty() }
+
+    fun nickHiderItalic() = data.nickHiderItalic
+    fun setNickHiderItalic(v: Boolean) { data.nickHiderItalic = v; save(); PeachSojuSync.markDirty() }
+    fun toggleNickHiderItalic() = (!data.nickHiderItalic).also { data.nickHiderItalic = it; save(); PeachSojuSync.markDirty() }
+
+    fun nickHiderUnderline() = data.nickHiderUnderline
+    fun setNickHiderUnderline(v: Boolean) { data.nickHiderUnderline = v; save(); PeachSojuSync.markDirty() }
+    fun toggleNickHiderUnderline() = (!data.nickHiderUnderline).also { data.nickHiderUnderline = it; save(); PeachSojuSync.markDirty() }
+
+    fun nickHiderStrikethrough() = data.nickHiderStrikethrough
+    fun setNickHiderStrikethrough(v: Boolean) { data.nickHiderStrikethrough = v; save(); PeachSojuSync.markDirty() }
+    fun toggleNickHiderStrikethrough() = (!data.nickHiderStrikethrough).also { data.nickHiderStrikethrough = it; save(); PeachSojuSync.markDirty() }
+
+    fun nickHiderRankEnabled() = data.nickHiderRankEnabled
+    fun setNickHiderRankEnabled(v: Boolean) { data.nickHiderRankEnabled = v; save(); PeachSojuSync.markDirty() }
+    fun toggleNickHiderRankEnabled() = (!data.nickHiderRankEnabled).also { data.nickHiderRankEnabled = it; save(); PeachSojuSync.markDirty() }
+
+    fun nickHiderRankOrdinal() = data.nickHiderRankOrdinal
+    fun setNickHiderRankOrdinal(ordinal: Int) { data.nickHiderRankOrdinal = ordinal; save(); PeachSojuSync.markDirty() }
+
+    fun nickHiderPlusColor() = data.nickHiderPlusColor
+    fun setNickHiderPlusColor(color: String) { data.nickHiderPlusColor = color; save(); PeachSojuSync.markDirty() }
+
+    fun nickHiderMvpPlusPlusBracketColor() = data.nickHiderMvpPlusPlusBracketColor
+    fun setNickHiderMvpPlusPlusBracketColor(color: String) { data.nickHiderMvpPlusPlusBracketColor = color; save(); PeachSojuSync.markDirty() }
+
+    // These don't need markDirty() - they're just UI state:
+    fun nickHiderExpanded() = data.nickHiderExpanded
+    fun setNickHiderExpanded(v: Boolean) { data.nickHiderExpanded = v; save() }
+
+    fun nickHiderUseCustomNick() = data.nickHiderUseCustomNick
+    fun setNickHiderUseCustomNick(v: Boolean) { data.nickHiderUseCustomNick = v; save(); PeachSojuSync.markDirty() }
+    fun toggleNickHiderUseCustomNick() = (!data.nickHiderUseCustomNick).also { data.nickHiderUseCustomNick = it; save(); PeachSojuSync.markDirty() }
+
     fun getStartNodeAppearance(): NodeAppearance = data.startNodeAppearance
     fun setStartNodeColor(r: Int, g: Int, b: Int, a: Float) {
         data.startNodeAppearance.color = NodeColor(r, g, b, a); save()
@@ -255,6 +346,12 @@ object config {
     fun autoAlignDelay() = data.autoAlignDelay
     fun setAutoAlignDelay(v: Int) { data.autoAlignDelay = v; save() }
 
+    fun autoWeirdos() = data.autoWeirdos
+    fun setAutoWeirdos(v: Boolean) { data.autoWeirdos = v; save() }
+    fun toggleAutoWeirdos() = (!data.autoWeirdos).also { data.autoWeirdos = it; save() }
+    fun autoWeirdosExpanded() = data.autoWeirdosExpanded
+    fun setAutoWeirdosExpanded(v: Boolean) { data.autoWeirdosExpanded = v; save() }
+
     fun hideServerID() = data.hideServerID
     fun setHideServerID(v: Boolean) { data.hideServerID = v; save() }
     fun toggleHideServerID() = (!data.hideServerID).also { data.hideServerID = it; save() }
@@ -264,13 +361,13 @@ object config {
         save()
     }
 
-    fun setNodeColor(type: WPType, r: Int, g: Int, b: Int, a: Float) {
+    fun setNodeColor(type: com.peachsoju.modules.impl.dungeon.autoroutes.data.WPType, r: Int, g: Int, b: Int, a: Float) {
         val appearance = data.nodeAppearances.getOrPut(type.name) { NodeAppearance() }
         appearance.color = NodeColor(r, g, b, a)
         save()
     }
 
-    fun setNodeStyle(type: WPType, style: String) {
+    fun setNodeStyle(type: com.peachsoju.modules.impl.dungeon.autoroutes.data.WPType, style: String) {
         val appearance = data.nodeAppearances.getOrPut(type.name) { NodeAppearance() }
         appearance.style = style
         save()
@@ -281,4 +378,60 @@ object config {
         initDefaults()
         save()
     }
+
+    fun autoP5Enabled() = data.autoP5Enabled
+    fun setAutoP5Enabled(v: Boolean) { data.autoP5Enabled = v; save() }
+    fun toggleAutoP5Enabled() = (!data.autoP5Enabled).also { data.autoP5Enabled = it; save() }
+
+    fun autoP5Pathfind() = data.autoP5Pathfind
+    fun setAutoP5Pathfind(v: Boolean) { data.autoP5Pathfind = v; save() }
+    fun toggleAutoP5Pathfind() = (!data.autoP5Pathfind).also { data.autoP5Pathfind = it; save() }
+
+    fun autoP5LastBreath() = data.autoP5LastBreath
+    fun setAutoP5LastBreath(v: Boolean) { data.autoP5LastBreath = v; save() }
+    fun toggleAutoP5LastBreath() = (!data.autoP5LastBreath).also { data.autoP5LastBreath = it; save() }
+
+    fun autoP5IceSpray() = data.autoP5IceSpray
+    fun setAutoP5IceSpray(v: Boolean) { data.autoP5IceSpray = v; save() }
+    fun toggleAutoP5IceSpray() = (!data.autoP5IceSpray).also { data.autoP5IceSpray = it; save() }
+
+    fun autoP5SoulWhip() = data.autoP5SoulWhip
+    fun setAutoP5SoulWhip(v: Boolean) { data.autoP5SoulWhip = v; save() }
+    fun toggleAutoP5SoulWhip() = (!data.autoP5SoulWhip).also { data.autoP5SoulWhip = it; save() }
+
+    fun autoP5GoMiddle() = data.autoP5GoMiddle
+    fun setAutoP5GoMiddle(v: Boolean) { data.autoP5GoMiddle = v; save() }
+    fun toggleAutoP5GoMiddle() = (!data.autoP5GoMiddle).also { data.autoP5GoMiddle = it; save() }
+
+    fun autoP5Debug() = data.autoP5Debug
+    fun setAutoP5Debug(v: Boolean) { data.autoP5Debug = v; save() }
+    fun toggleAutoP5Debug() = (!data.autoP5Debug).also { data.autoP5Debug = it; save() }
+
+    fun autoP5HealerTeam() = data.autoP5HealerTeam
+    fun setAutoP5HealerTeam(v: Int) { data.autoP5HealerTeam = v; save() }
+
+    fun autoP5IceSprayTick() = data.autoP5IceSprayTick
+    fun setAutoP5IceSprayTick(v: Int) { data.autoP5IceSprayTick = v.coerceIn(1, 100); save() }
+
+    fun autoP5SoulWhipTick() = data.autoP5SoulWhipTick
+    fun setAutoP5SoulWhipTick(v: Int) { data.autoP5SoulWhipTick = v.coerceIn(1, 20); save() }
+
+    fun autoP5RedDelay() = data.autoP5RedDelay
+    fun setAutoP5RedDelay(v: Double) { data.autoP5RedDelay = v.coerceIn(0.0, 2000.0); save() }
+
+    fun autoP5OrangeDelay() = data.autoP5OrangeDelay
+    fun setAutoP5OrangeDelay(v: Double) { data.autoP5OrangeDelay = v.coerceIn(0.0, 2000.0); save() }
+
+    fun autoP5GreenDelay() = data.autoP5GreenDelay
+    fun setAutoP5GreenDelay(v: Double) { data.autoP5GreenDelay = v.coerceIn(0.0, 2000.0); save() }
+
+    fun autoP5BlueDelay() = data.autoP5BlueDelay
+    fun setAutoP5BlueDelay(v: Double) { data.autoP5BlueDelay = v.coerceIn(0.0, 2000.0); save() }
+
+    fun autoP5PurpleDelay() = data.autoP5PurpleDelay
+    fun setAutoP5PurpleDelay(v: Double) { data.autoP5PurpleDelay = v.coerceIn(0.0, 2000.0); save() }
+
+    fun autoP5Expanded() = data.autoP5Expanded
+    fun setAutoP5Expanded(v: Boolean) { data.autoP5Expanded = v; save() }
+
 }

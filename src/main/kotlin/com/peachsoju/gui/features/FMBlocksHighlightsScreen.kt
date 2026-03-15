@@ -1,8 +1,7 @@
 package com.peachsoju.gui.features
 
-import com.peachsoju.gui.FeatureScreen
-import com.peachsoju.gui.components.ColorPickerPopup
-import com.peachsoju.modules.impl.fmblocks.FMBlocksHighlights
+import com.peachsoju.modules.impl.misc.customitems.ColorPickerPopup
+import com.peachsoju.modules.impl.dungeon.fmblocks.FMBlocksHighlights
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.client.gui.screens.Screen
@@ -10,7 +9,6 @@ import net.minecraft.client.input.KeyEvent
 import net.minecraft.client.input.MouseButtonEvent
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.network.chat.Component
-import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.Items
 import kotlin.math.*
@@ -32,6 +30,8 @@ class FMBlocksHighlightsScreen(parent: Screen?) : Screen(Component.literal("Bloc
         private const val TOGGLE_OFF = 0xFFB85C5C.toInt()
         private const val ETHER_ON = 0xFF5599FF.toInt()
         private const val ETHER_OFF = 0xFF445566.toInt()
+        private const val ESP_ON = 0xFF9955FF.toInt()
+        private const val ESP_OFF = 0xFF554466.toInt()
 
         private const val GUI_WIDTH = 320
         private const val GUI_HEIGHT = 300
@@ -295,12 +295,17 @@ class FMBlocksHighlightsScreen(parent: Screen?) : Screen(Component.literal("Bloc
         val deleteW = 25
         val deleteH = 16
 
-        val etherBtnX = x + width - 63
+        val espBtnX = x + width - 63
+        val espBtnY = y + 5 + yOffset
+        val espBtnW = 25
+        val espBtnH = 16
+
+        val etherBtnX = x + width - 91
         val etherBtnY = y + 5 + yOffset
         val etherBtnW = 25
         val etherBtnH = 16
 
-        val colorX = x + width - 98
+        val colorX = x + width - 126
         val colorY = y + 5 + yOffset
         val colorW = 25
         val colorH = 16
@@ -327,6 +332,19 @@ class FMBlocksHighlightsScreen(parent: Screen?) : Screen(Component.literal("Bloc
         val etherColor = lerpColor(etherBaseColor, brighten(etherBaseColor, 30), newEtherHover)
         graphics.fill(etherBtnX, etherBtnY, etherBtnX + etherBtnW, etherBtnY + etherBtnH, withAlpha(etherColor, alpha))
         graphics.drawString(font, "⚡", etherBtnX + 9, etherBtnY + 4, withAlpha(TEXT_LIGHT, alpha), false)
+
+        // ESP button
+        val espHoverKey = "esp_$index"
+        val espHover = mouseX in espBtnX..(espBtnX + espBtnW) && mouseY in espBtnY..(espBtnY + espBtnH) && !isClosing && colorPicker == null
+        val targetEspHover = if (espHover) 1f else 0f
+        val currentEspHover = hoverProgress.getOrDefault(espHoverKey, 0f)
+        val newEspHover = lerp(currentEspHover, targetEspHover, HOVER_LERP_SPEED)
+        hoverProgress[espHoverKey] = newEspHover
+
+        val espBaseColor = if (highlight.esp) ESP_ON else ESP_OFF
+        val espColor = lerpColor(espBaseColor, brighten(espBaseColor, 30), newEspHover)
+        graphics.fill(espBtnX, espBtnY, espBtnX + espBtnW, espBtnY + espBtnH, withAlpha(espColor, alpha))
+        graphics.drawString(font, "👁", espBtnX + 8, espBtnY + 4, withAlpha(TEXT_LIGHT, alpha), false)
 
         val deleteHoverKey = "delete_$index"
         val deleteHover = mouseX in deleteX..(deleteX + deleteW) && mouseY in deleteY..(deleteY + deleteH) && !isClosing && colorPicker == null
@@ -528,7 +546,7 @@ class FMBlocksHighlightsScreen(parent: Screen?) : Screen(Component.literal("Bloc
                         return true
                     }
 
-                    val colorX = contentLeft + contentWidth - 98
+                    val colorX = contentLeft + contentWidth - 126
                     val colorY = y + 5
                     val colorW = 25
                     val colorH = 16
@@ -538,12 +556,22 @@ class FMBlocksHighlightsScreen(parent: Screen?) : Screen(Component.literal("Bloc
                         return true
                     }
 
-                    val etherBtnX = contentLeft + contentWidth - 63
+                    val etherBtnX = contentLeft + contentWidth - 91
                     val etherBtnY = y + 5
                     val etherBtnW = 25
                     val etherBtnH = 16
                     if (mouseX in etherBtnX..(etherBtnX + etherBtnW) && mouseY in etherBtnY..(etherBtnY + etherBtnH)) {
                         FMBlocksHighlights.setEtherActivate(highlight.itemId, !highlight.etherActivate)
+                        playClick()
+                        return true
+                    }
+
+                    val espBtnX = contentLeft + contentWidth - 63
+                    val espBtnY = y + 5
+                    val espBtnW = 25
+                    val espBtnH = 16
+                    if (mouseX in espBtnX..(espBtnX + espBtnW) && mouseY in espBtnY..(espBtnY + espBtnH)) {
+                        FMBlocksHighlights.setEsp(highlight.itemId, !highlight.esp)
                         playClick()
                         return true
                     }

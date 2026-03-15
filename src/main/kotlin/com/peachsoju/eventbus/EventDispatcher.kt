@@ -9,7 +9,7 @@ import com.peachsoju.eventbus.events.RenderOverlayEvent
 import com.peachsoju.eventbus.events.RoomEnterEvent
 import com.peachsoju.eventbus.events.TickEvent
 import com.peachsoju.eventbus.events.WorldEvent
-import com.peachsoju.modules.impl.autoroutes.SecretListener
+import com.peachsoju.modules.impl.dungeon.autoroutes.SecretListener
 import com.peachsoju.utils.RouteUtils
 import com.peachsoju.utils.handlers.RenderBatchManager
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents

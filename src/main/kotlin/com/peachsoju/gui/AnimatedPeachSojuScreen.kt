@@ -80,8 +80,10 @@ class AnimatedPeachSojuScreen : Screen(Component.literal("PeachSoju")) {
         FeatureCard("AutoSS", "Simon Says solver", { config.autoSS() }, { openScreen(AutoSSScreen(this)) }),
         FeatureCard("Auto Ice Fill", "Ice Fill puzzle solver", { config.autoIceFill() }, { openScreen(AutoIceFillScreen(this)) }),
         FeatureCard("Auto Align", "Arrow alignment solver", { config.autoAlign() }, { openScreen(AutoAlignScreen(this)) }),
+        FeatureCard("Auto Weirdos", "Three Weirdos puzzle solver", { config.autoWeirdos() }, { openScreen(AutoWeirdosScreen(this)) }),
         FeatureCard("Storm Bow Timer", "Erectile Dysfunction", { config.stormBowTimer() }, { openScreen(StormBowTimerScreen(this)) }),
         FeatureCard("Legacy Animations", "1.8.9 animations", { config.stormLegacyAnimation() }, { openScreen(LegacyAnimationsScreen(this)) }),
+        FeatureCard("Nick Hider", "Hide your IGN with a custom nick", { config.nickHider() }, { openScreen(NickHiderScreen(this)) }),
         FeatureCard("Misc", "Miscellaneous settings", { config.hideServerID() }, { openScreen(MiscScreen(this)) })
     )
 

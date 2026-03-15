@@ -2,7 +2,7 @@ package com.peachsoju.utils
 
 import com.peachsoju.PeachSoju.mc
 import com.peachsoju.config
-import com.peachsoju.modules.impl.autoroutes.data.WaypointNode
+import com.peachsoju.modules.impl.dungeon.autoroutes.data.WaypointNode
 import com.odtheking.odin.utils.skyblock.dungeon.DungeonUtils
 import com.odtheking.odin.utils.skyblock.dungeon.DungeonUtils.getRealCoords
 import com.odtheking.odin.utils.skyblock.dungeon.tiles.Room
